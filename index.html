@@ -1,0 +1,2605 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>עט סופר | Et Sofer</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Hebrew:wght@400;700;900&family=Heebo:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold: #C8972A;
+  --gold2: #E8B84B;
+  --gold3: #8B6210;
+  --cream: #FDFAF3;
+  --cream2: #F5EDD8;
+  --ink: #1A0800;
+  --ink2: #4A2808;
+  --muted: #8B6840;
+  --border: #D4B87A;
+  --red: #7A1010;
+  --green: #145214;
+  --surface: #FFFFFF;
+  --F: 'Noto Serif Hebrew', serif;
+  --FU: 'Heebo', Arial, sans-serif;
+}
+
+body {
+  font-family: var(--F);
+  background: var(--cream2);
+  color: var(--ink);
+  direction: rtl;
+  min-height: 100vh;
+}
+
+/* ── LANDING PAGE ── */
+#landing {
+  position: fixed; inset: 0; z-index: 8000;
+  background: linear-gradient(160deg, #0D0400 0%, #1A0800 45%, #2A1000 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 20px; overflow-y: auto;
+}
+#landing.gone { display: none; }
+.l-logo-wrap { text-align: center; margin-bottom: 44px; }
+.l-title { font-size: 54px; font-weight: 900; color: var(--gold2); font-family: var(--F);
+  letter-spacing: 2px; text-shadow: 0 0 50px rgba(232,184,75,0.35); line-height: 1; }
+.l-en { font-size: 13px; color: rgba(200,151,42,0.45); font-family: var(--FU);
+  letter-spacing: 4px; text-transform: uppercase; margin-top: 7px; }
+.l-verse { font-size: 12px; color: rgba(200,151,42,0.3); font-family: var(--F);
+  margin-top: 10px; }
+.l-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  max-width: 660px; width: 100%; }
+.lm {
+  background: rgba(200,151,42,0.05); border: 1px solid rgba(200,151,42,0.18);
+  border-radius: 10px; padding: 22px 18px; cursor: pointer;
+  transition: all 0.22s; text-align: center; position: relative;
+}
+.lm:hover { border-color: var(--gold); background: rgba(200,151,42,0.1);
+  transform: translateY(-3px); box-shadow: 0 8px 28px rgba(200,151,42,0.12); }
+.lm-icon { font-size: 34px; margin-bottom: 11px; }
+.lm-name { font-size: 17px; font-weight: 800; color: var(--gold2);
+  font-family: var(--F); margin-bottom: 7px; }
+.lm-desc { font-size: 11.5px; color: rgba(200,151,42,0.5);
+  font-family: var(--FU); line-height: 1.65; }
+.l-footer { margin-top: 36px; display: flex; gap: 20px; align-items: center;
+  font-size: 11px; font-family: var(--FU); color: rgba(200,151,42,0.3); }
+.l-footer a { color: rgba(200,151,42,0.45); text-decoration: none; }
+.l-footer a:hover { color: var(--gold2); }
+.l-divider { width: 1px; height: 14px; background: rgba(200,151,42,0.2); }
+
+/* HEADER */
+#header {
+  background: linear-gradient(135deg, #1A0800, #3D1A05, #1A0800);
+  border-bottom: 3px solid var(--gold);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-circle {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold3), var(--gold2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.logo-he { color: var(--gold2); font-size: 18px; font-weight: 900; }
+.logo-en { color: rgba(232,184,75,0.5); font-size: 10px; font-family: var(--FU); letter-spacing: 3px; }
+
+/* MODE TABS */
+#modebar {
+  background: #0D0400;
+  border-bottom: 2px solid rgba(200,151,42,0.3);
+  display: flex;
+  padding: 0 32px;
+  gap: 4px;
+}
+.mtab {
+  font-family: var(--FU);
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(200,151,42,0.4);
+  padding: 16px 24px;
+  border: none;
+  border-bottom: 4px solid transparent;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  outline: none;
+  letter-spacing: 0.2px;
+}
+.mtab:hover { color: rgba(200,151,42,0.75); background: rgba(200,151,42,0.07); }
+.mtab.active { 
+  color: var(--gold2); 
+  border-bottom-color: var(--gold); 
+  background: rgba(200,151,42,0.1);
+  text-shadow: 0 0 20px rgba(232,184,75,0.3);
+}
+
+/* APP */
+#app { max-width: 1280px; margin: 0 auto; padding: 24px 32px; }
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 18px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(139,98,16,0.1);
+}
+.card-top-line {
+  height: 3px;
+  background: linear-gradient(90deg, var(--red), var(--gold), var(--red));
+}
+.card-head {
+  background: rgba(200,151,42,0.06);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title {
+  font-family: var(--FU);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold3), var(--gold));
+  color: white; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--FU);
+}
+.card-body { padding: 20px; }
+
+/* UPLOAD */
+#upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+  background: var(--cream);
+  text-align: center;
+  padding: 48px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+#upload-area:hover, #upload-area.drag { border-color: var(--gold); background: var(--cream2); }
+#upload-area .big-icon { font-size: 52px; opacity: 0.3; margin-bottom: 12px; }
+#upload-area h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; color: var(--ink2); }
+#upload-area p { font-size: 13px; color: var(--muted); font-family: var(--FU); }
+
+#file-display {
+  display: none;
+  background: #f0f8f0;
+  border: 1px solid #a8d4a8;
+  border-radius: 4px;
+  padding: 10px 16px;
+  margin-top: 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.file-name { font-weight: 700; font-size: 14px; }
+.file-meta { font-size: 11px; color: var(--muted); font-family: var(--FU); }
+
+/* CHAPTER LIST */
+#chapter-section { display: none; margin-top: 16px; }
+.ch-list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+  font-family: var(--FU); font-size: 13px; font-weight: 700; color: var(--ink2);
+}
+.ch-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border: 1px solid var(--border);
+  border-radius: 4px; margin-bottom: 6px;
+  background: var(--cream); cursor: pointer; transition: all 0.15s;
+}
+.ch-item:hover { border-color: var(--gold); }
+.ch-item.ch-done { background: #f0f8f0; border-color: #a0c8a0; }
+.ch-item.ch-active { background: rgba(200,151,42,0.07); border-color: var(--gold); }
+.ch-item.ch-error { background: #fff0f0; border-color: #d0a0a0; }
+.ch-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold3), var(--gold));
+  color: white; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--FU); flex-shrink: 0;
+}
+.ch-item.ch-done .ch-num { background: linear-gradient(135deg, #2a5a2a, #3a8a3a); }
+.ch-item.ch-error .ch-num { background: linear-gradient(135deg, #8a2a2a, #aa3a3a); }
+.ch-title-text { flex: 1; font-size: 14px; font-weight: 600; color: var(--ink2); }
+.ch-meta-text { font-size: 11px; color: var(--muted); font-family: var(--FU); }
+.ch-st { font-size: 11px; font-family: var(--FU); font-weight: 700; }
+
+/* BUTTONS */
+.btn {
+  font-family: var(--FU);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.15s;
+  outline: none;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.btn-gold { background: linear-gradient(135deg, var(--gold3), var(--gold)); color: white; border-color: var(--gold3); }
+.btn-gold:hover { background: linear-gradient(135deg, #5a3a08, var(--gold2)); }
+.btn-outline { background: transparent; color: var(--ink2); border-color: var(--border); }
+.btn-outline:hover { background: var(--cream); border-color: var(--gold3); }
+.btn-red { background: var(--red); color: white; border-color: var(--red); }
+.btn-red:hover { background: #5a0808; }
+.btn-green { background: var(--green); color: white; border-color: var(--green); }
+.btn-green:hover { background: #0a3a0a; }
+.btn-ghost { background: transparent; color: rgba(200,151,42,0.5); border: none; padding: 8px 10px; }
+.btn-ghost:hover { color: var(--gold2); }
+.btn-lg { font-size: 15px; padding: 11px 24px; }
+.btn-sm { font-size: 12px; padding: 5px 11px; }
+
+/* FLOW CARDS */
+.flow-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+@media (max-width: 700px) { .flow-grid { grid-template-columns: 1fr; } }
+.flow-card {
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 14px 16px; cursor: pointer; background: var(--cream);
+  transition: all 0.15s; text-align: right;
+}
+.flow-card:hover { border-color: var(--gold); }
+.flow-card.sel { border-color: var(--gold3); background: rgba(200,151,42,0.07); box-shadow: inset 0 0 0 1px var(--gold3); }
+.flow-icon { font-size: 22px; margin-bottom: 5px; }
+.flow-title { font-size: 13px; font-weight: 700; font-family: var(--FU); color: var(--ink); margin-bottom: 3px; }
+.flow-desc { font-size: 11px; color: var(--ink2); font-family: var(--FU); line-height: 1.5; }
+
+/* HEADING CARDS */
+.head-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 10px; }
+@media (max-width: 900px) { .head-grid { grid-template-columns: 1fr 1fr 1fr; } }
+@media (max-width: 600px) { .head-grid { grid-template-columns: 1fr 1fr; } }
+.head-card {
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 10px 12px; cursor: pointer; background: var(--cream);
+  transition: all 0.15s; text-align: right;
+}
+.head-card:hover { border-color: var(--gold); }
+.head-card.sel { border-color: var(--gold3); background: rgba(200,151,42,0.07); box-shadow: inset 0 0 0 1px var(--gold3); }
+.head-icon { font-size: 18px; margin-bottom: 3px; }
+.head-title { font-size: 12px; font-weight: 700; font-family: var(--FU); color: var(--ink); margin-bottom: 2px; }
+.head-desc { font-size: 10px; color: var(--muted); font-family: var(--FU); line-height: 1.4; }
+
+/* SETTINGS */
+.sgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 13px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px; font-family: var(--FU); text-transform: uppercase; }
+.field select, .field input[type="text"], .field input[type="password"] {
+  font-family: var(--FU); font-size: 13px; padding: 8px 11px;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--surface); color: var(--ink); direction: rtl; outline: none;
+}
+.field select:focus, .field input:focus { border-color: var(--gold); }
+.check-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 13px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--cream); cursor: pointer;
+}
+.check-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--gold3); cursor: pointer; }
+.check-label { font-size: 13px; font-weight: 600; font-family: var(--FU); color: var(--ink); }
+.check-sub { font-size: 11px; color: var(--muted); font-family: var(--FU); }
+.custom-ta {
+  width: 100%; min-height: 75px; font-family: var(--F); font-size: 14px;
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--cream); color: var(--ink); direction: rtl;
+  resize: vertical; outline: none; line-height: 1.7;
+}
+.custom-ta:focus { border-color: var(--gold); }
+
+/* TEXT PANELS */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+.text-panel { border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.text-panel-head {
+  background: rgba(200,151,42,0.06); border-bottom: 1px solid var(--border);
+  padding: 8px 14px; display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; font-weight: 700; color: var(--muted); font-family: var(--FU);
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+.dot.on { background: var(--green); }
+.text-area {
+  min-height: 340px; max-height: 500px; overflow-y: auto;
+  padding: 14px 16px; font-size: 16px; line-height: 2.1;
+  direction: rtl; text-align: right;
+  white-space: pre-wrap; word-break: break-word;
+  background: var(--surface); font-family: var(--F); outline: none;
+}
+.text-area[contenteditable="true"] { cursor: text; }
+.text-area::-webkit-scrollbar { width: 5px; }
+.text-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* PROGRESS */
+.prog-wrap { margin-top: 14px; }
+.prog-bar { height: 6px; background: var(--cream2); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--gold3), var(--gold2)); border-radius: 3px; transition: width 0.5s; width: 0%; }
+.prog-txt { font-size: 12px; color: var(--muted); text-align: center; font-family: var(--FU); margin-bottom: 8px; }
+.logbox {
+  background: #1A0800; color: #c8a060; border-radius: 4px;
+  padding: 10px 14px; font-size: 11px; font-family: monospace;
+  direction: ltr; text-align: left; max-height: 88px; overflow-y: auto;
+  margin-top: 10px; line-height: 1.7; border: 1px solid rgba(200,151,42,0.2);
+}
+.logbox .ok { color: #5fdf5f; }
+.logbox .er { color: #ff7070; }
+.logbox .in { color: #80bfff; }
+
+/* STATUS */
+.stat {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; padding: 4px 12px; border-radius: 20px;
+  font-weight: 700; font-family: var(--FU);
+}
+.stat-idle { background: rgba(200,151,42,0.1); color: var(--gold3); border: 1px solid rgba(200,151,42,0.3); }
+.stat-rdy  { background: #e8f4e8; color: var(--green); border: 1px solid #a8d8a8; }
+.stat-wrk  { background: rgba(200,151,42,0.15); color: var(--gold3); border: 1px solid var(--gold); }
+.stat-dn   { background: #e0f0e0; color: var(--green); border: 1px solid #88c888; }
+.stat-er   { background: #fdf0f0; color: var(--red); border: 1px solid #d8a0a0; }
+
+.badge { font-size: 11px; background: var(--cream2); color: var(--muted); padding: 2px 9px; border-radius: 20px; font-weight: 700; font-family: var(--FU); }
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.notice { padding: 10px 14px; border-radius: 4px; font-size: 12px; font-family: var(--FU); line-height: 1.5; margin-bottom: 14px; border-right: 3px solid; }
+.n-blue  { background: #eef2ff; border-color: #4060c0; color: #1a3080; }
+.n-gold  { background: rgba(200,151,42,0.07); border-color: var(--gold); color: var(--ink2); }
+.n-green { background: #f0f8f0; border-color: var(--green); color: #1a4a1a; }
+
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 56px 20px; color: var(--muted); font-size: 13px; text-align: center; font-family: var(--FU); }
+.empty-icon { font-size: 40px; opacity: 0.2; }
+
+/* PAUSE OVERLAY */
+#pause-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(26,8,0,0.75); z-index: 999;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+#pause-overlay.show { display: flex; }
+.pause-box {
+  background: white; border: 2px solid var(--gold); border-radius: 8px;
+  padding: 32px 36px; max-width: 520px; width: 90%; text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+}
+.pause-box h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--ink); }
+.pause-ch { font-size: 14px; color: var(--gold3); font-weight: 600; margin-bottom: 14px; font-family: var(--FU); }
+.pause-prev {
+  background: var(--cream); border: 1px solid var(--border); border-radius: 4px;
+  padding: 12px 16px; font-size: 14px; line-height: 1.9; text-align: right;
+  max-height: 180px; overflow-y: auto; margin-bottom: 20px; direction: rtl; font-family: var(--F);
+}
+.pause-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+/* preview */
+.diff-ins { background: #d4f7d4; color: #1a4a1a; border-radius: 2px; padding: 0 1px; }
+.diff-del { background: #fdd; color: #7a0000; text-decoration: line-through; border-radius: 2px; padding: 0 1px; opacity: 0.7; }
+.diff-wrap { font-family: var(--F); font-size: 16px; line-height: 2.1; direction: rtl; text-align: right; white-space: pre-wrap; word-break: break-word; }
+
+.editor-full {
+  position: fixed; inset: 0; z-index: 9000;
+  background: var(--surface); display: none; flex-direction: column;
+}
+.editor-full.open { display: flex; }
+
+/* ── TRACK VIEWER ── */
+#track-viewer {
+  position: fixed; inset: 0; z-index: 9500;
+  background: #0D0400; display: none; flex-direction: column;
+}
+#track-viewer.open { display: flex; }
+.tv-toolbar {
+  background: linear-gradient(135deg, #1A0800, #3D1A05);
+  border-bottom: 2px solid var(--gold);
+  padding: 8px 14px; display: flex; align-items: center;
+  gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+}
+.tv-title { color: var(--gold2); font-size: 14px; font-weight: 800;
+  font-family: var(--FU); margin-left: auto; }
+.tv-panes {
+  flex: 1; display: flex; gap: 0; overflow: hidden; min-height: 0;
+}
+.tv-pane {
+  display: flex; flex-direction: column; overflow: hidden;
+  border-left: 1px solid rgba(200,151,42,0.2); min-width: 0;
+}
+.tv-pane:last-child { border-left: none; }
+.tv-pane-head {
+  background: rgba(200,151,42,0.08); border-bottom: 1px solid rgba(200,151,42,0.2);
+  padding: 7px 14px; font-size: 11px; font-weight: 700;
+  font-family: var(--FU); color: var(--gold2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tv-pane-body {
+  flex: 1; overflow-y: auto; padding: 20px 18px;
+  font-family: var(--F); font-size: 15px; line-height: 2;
+  direction: rtl; text-align: right; white-space: pre-wrap;
+  word-break: break-word; scroll-behavior: smooth;
+}
+.tv-resizer {
+  width: 5px; background: rgba(200,151,42,0.15); cursor: col-resize;
+  flex-shrink: 0; transition: background 0.2s;
+}
+.tv-resizer:hover { background: rgba(200,151,42,0.4); }
+.tv-statusbar {
+  background: #1A0800; border-top: 1px solid rgba(200,151,42,0.2);
+  padding: 5px 16px; display: flex; align-items: center; gap: 16px;
+  font-size: 11px; color: rgba(200,151,42,0.5); font-family: var(--FU); flex-shrink: 0;
+}
+.tv-sync-indicator { display: flex; align-items: center; gap: 5px; }
+.tv-sync-dot { width: 7px; height: 7px; border-radius: 50%;
+  background: #4caf50; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.editor-toolbar {
+  background: linear-gradient(135deg, #1A0800, #3D1A05);
+  border-bottom: 2px solid var(--gold);
+  padding: 8px 16px; display: flex; align-items: center;
+  gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+}
+.editor-toolbar .etitle {
+  color: var(--gold2); font-size: 14px; font-weight: 800;
+  font-family: var(--FU); margin-left: auto;
+}
+.tb-btn {
+  font-family: var(--FU); font-size: 12px; font-weight: 700;
+  padding: 5px 11px; border-radius: 3px; border: 1px solid rgba(200,151,42,0.4);
+  background: rgba(200,151,42,0.1); color: var(--gold2); cursor: pointer;
+  display: flex; align-items: center; gap: 4px; transition: all 0.15s; outline: none;
+}
+.tb-btn:hover { background: rgba(200,151,42,0.2); border-color: var(--gold); }
+.tb-btn.active { background: var(--gold3); color: white; border-color: var(--gold3); }
+.tb-sep { width: 1px; height: 24px; background: rgba(200,151,42,0.3); margin: 0 4px; }
+.find-bar {
+  background: #2a1000; border-bottom: 1px solid var(--gold3);
+  padding: 6px 16px; display: none; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.find-bar.show { display: flex; }
+.find-bar input {
+  font-family: var(--FU); font-size: 13px; padding: 5px 10px;
+  border: 1px solid var(--gold3); border-radius: 3px;
+  background: rgba(255,255,255,0.1); color: white; direction: rtl; outline: none; width: 200px;
+}
+.find-bar input::placeholder { color: rgba(200,151,42,0.5); }
+.find-info { color: rgba(200,151,42,0.7); font-size: 11px; font-family: var(--FU); min-width: 60px; }
+.editor-body {
+  flex: 1; overflow-y: auto; padding: 40px 80px;
+  font-family: var(--F); font-size: 17px; line-height: 2.2;
+  direction: rtl; text-align: right; outline: none;
+  caret-color: var(--gold3);
+}
+.editor-body:focus { outline: none; }
+.editor-statusbar {
+  background: #1A0800; border-top: 1px solid rgba(200,151,42,0.3);
+  padding: 5px 20px; display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: rgba(200,151,42,0.6); font-family: var(--FU); flex-shrink: 0;
+}
+mark.find-hi { background: rgba(255,200,0,0.5); border-radius: 2px; }
+mark.find-cur { background: rgba(255,130,0,0.7); border-radius: 2px; }
+
+.exp-preview {
+  border: 1px solid var(--border); border-radius: 4px; padding: 14px 18px;
+  background: var(--cream); font-size: 16px; line-height: 2; direction: rtl;
+  text-align: right; max-height: 220px; overflow-y: auto; margin-top: 12px;
+  font-family: var(--F);
+}
+</style>
+</head>
+<body>
+
+<!-- LANDING PAGE -->
+<div id="landing">
+  <div class="l-logo-wrap">
+    <div class="l-title">עט סופר</div>
+    <div class="l-en">ET SOFER</div>
+    <div class="l-verse">לשון חכמים · לשון קודש · לשון הספר</div>
+  </div>
+
+  <div class="l-modes">
+    <div class="lm" onclick="enterMode('torah')">
+      <div class="lm-icon">📜</div>
+      <div class="lm-name">לשון קודש תורנית</div>
+      <div class="lm-desc">עריכה לסגנון ספרי קדש מסורתי · שיוף לשון הקודש · פיסוק ומ"מ · ניקוד</div>
+    </div>
+    <div class="lm" onclick="enterMode('heb')">
+      <div class="lm-icon">✍️</div>
+      <div class="lm-name">עברית מקצועית</div>
+      <div class="lm-desc">עריכה לעברית ברורה ומלוטשת · מאמרים · שיעורים · חומר רבני מודרני</div>
+    </div>
+    <div class="lm" onclick="enterMode('legal')">
+      <div class="lm-icon">⚖️</div>
+      <div class="lm-name">מסמכים משפטיים</div>
+      <div class="lm-desc">חוזים · כתבי טענות · פסקי דין · ניסוח משפטי מדויק</div>
+    </div>
+    <div class="lm" onclick="enterMode('eng')">
+      <div class="lm-icon">🇬🇧</div>
+      <div class="lm-name">English Professional</div>
+      <div class="lm-desc">Torah articles · Responsa · Academic writing · Professional English editing</div>
+    </div>
+  </div>
+
+  <div class="l-footer">
+    <span>גרסה 1.0</span>
+    <span class="l-divider"></span>
+    <a href="#" onclick="showInstructions(); return false">הוראות שימוש</a>
+    <span class="l-divider"></span>
+    <a href="#" onclick="showPricing(); return false">תמחור</a>
+    <span class="l-divider"></span>
+    <span>הטקסט נשאר על מחשבך בלבד</span>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="cors-warning" style="display:none;background:#7a0000;color:#fff;text-align:center;padding:10px 16px;font-family:sans-serif;font-size:13px;direction:rtl">
+  ⚠️ הכלי לא יעבוד מקובץ מקומי (file://). יש לפתוח אותו דרך שרת.
+  <strong>פתרון מהיר:</strong> גרור את הקובץ לכאן:
+  <a href="https://htmlpreview.github.io/" target="_blank" style="color:#ffcc00;margin:0 4px">htmlpreview.github.io</a>
+  או פתח ב-<a href="https://codepen.io/pen" target="_blank" style="color:#ffcc00;margin:0 4px">CodePen</a>
+</div>
+<div id="header">
+  <div class="logo">
+    <div class="logo-circle">✒</div>
+    <div>
+      <div class="logo-he">עט סופר</div>
+      <div class="logo-en">ET SOFER</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="gstat" class="stat stat-idle">⬤ ממתין</span>
+    <button class="btn btn-ghost" onclick="resetAll()">↺ איפוס</button>
+  </div>
+</div>
+
+<!-- MODE BAR -->
+<div id="modebar">
+  <button class="mtab active" onclick="setMode('torah')">📜 לשון קודש תורנית</button>
+  <button class="mtab" onclick="setMode('heb')">✍ עברית מקצועית</button>
+  <button class="mtab" onclick="setMode('legal')">⚖ מסמכים משפטיים</button>
+  <button class="mtab" onclick="setMode('eng')">🇬🇧 English Professional</button>
+</div>
+
+<div id="app">
+
+<!-- א UPLOAD -->
+<div class="card">
+  <div class="card-top-line"></div>
+  <div class="card-head">
+    <div class="card-title"><span class="step-num">א</span> העלאת קובץ</div>
+    <span id="fn-badge" class="badge" style="display:none">⚓ עם הערות שוליים</span>
+  </div>
+  <div class="card-body">
+    <div id="upload-area">
+      <div class="big-icon">📄</div>
+      <h3>לחץ כאן להעלאת קובץ Word</h3>
+      <p>ספרים שלמים · קבצים גדולים · .docx בלבד</p>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--FU)">הטקסט נשאר על מחשבך בלבד</p>
+      <p style="font-size:11px;color:rgba(200,151,42,0.6);margin-top:6px;font-family:var(--FU)">💡 הוסף @@ לפני כל מאמר/נושא בWord לפיצול מדויק</p>
+    </div>
+    <input type="file" id="file-input" accept=".docx" style="display:none">
+
+    <div id="file-display">
+      <div>
+        <div class="file-name" id="fname"></div>
+        <div class="file-meta" id="fmeta"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="fcnt" class="badge"></span>
+        <button class="btn btn-outline btn-sm" onclick="clearFile()">✕ הסר</button>
+      </div>
+    </div>
+
+    <div id="chapter-section">
+      <div class="ch-list-head">
+        <span>פרקים שזוהו</span>
+        <button class="btn btn-outline btn-sm" onclick="redetect()">🔄 זיהוי מחדש</button>
+      </div>
+      <div id="ch-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ב FLOW -->
+<div class="card" id="flow-card" style="display:none">
+  <div class="card-top-line"></div>
+  <div class="card-head"><div class="card-title"><span class="step-num">ב</span> אופן העיבוד</div></div>
+  <div class="card-body">
+    <div class="flow-grid">
+      <div class="flow-card sel" id="fc-auto" onclick="setFlow('auto')">
+        <div class="flow-icon">⚡</div>
+        <div class="flow-title">כל הספר ללא עצירה</div>
+        <div class="flow-desc">עורך את כל הפרקים ברצף. ניתן לעצור בכל עת.</div>
+      </div>
+      <div class="flow-card" id="fc-pause" onclick="setFlow('pause')">
+        <div class="flow-icon">🔍</div>
+        <div class="flow-title">עצור אחרי כל פרק</div>
+        <div class="flow-desc">שואל לאשר, לערוך או לדלג אחרי כל פרק.</div>
+      </div>
+      <div class="flow-card" id="fc-scan" onclick="setFlow('scan')">
+        <div class="flow-icon">🔭</div>
+        <div class="flow-title">סריקה תחילה</div>
+        <div class="flow-desc">קורא הכל ומפרט בעיות לשון לפני עריכה.</div>
+      </div>
+    </div>
+    <div id="flow-info" class="notice n-gold" style="margin-bottom:0">
+      ⚡ <strong>ללא עצירה:</strong> המערכת תעבור על כל הפרקים בזה אחר זה.
+    </div>
+  </div>
+</div>
+
+<!-- ג SETTINGS -->
+<div class="card" id="settings-card" style="display:none">
+  <div class="card-top-line"></div>
+  <div class="card-head"><div class="card-title"><span class="step-num">ג</span> הגדרות</div></div>
+  <div class="card-body">
+
+    <!-- Options - common + mode-specific -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <label class="check-row">
+        <input type="checkbox" id="opt-nikud">
+        <div><div class="check-label">ניקוד</div><div class="check-sub" id="nikud-sub">ניקוד מלא לפי כללי הדקדוק</div></div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="nikud-pasuk">
+        <div><div class="check-label">ניקוד פסוקים</div><div class="check-sub">ניקד פסוקים לפי ניקוד המסורה</div></div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="opt-quotes" checked>
+        <div><div class="check-label" id="quotes-label">שמור מובאות כלשונן</div><div class="check-sub" id="quotes-sub">פסוקים, גמרא, ראשונים</div></div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="opt-fn" checked>
+        <div><div class="check-label">ערוך הערות שוליים</div><div class="check-sub" id="fn-sub">הסברים — ערוך; ציטוטים — כלשונם</div></div>
+      </label>
+    </div>
+    <!-- Mode-specific extra options -->
+    <div id="opts-torah-extra" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    </div>
+    <div id="opts-heb-extra" style="display:none;grid-template-columns:1fr;gap:10px;margin-bottom:10px">
+      <label class="check-row">
+        <input type="checkbox" id="opt-heb-simple" checked>
+        <div><div class="check-label">עברית בהירה ופשוטה</div><div class="check-sub">משפטים קצרים, ללא סרבולים</div></div>
+      </label>
+    </div>
+    <div id="opts-legal-extra" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <label class="check-row">
+        <input type="checkbox" id="opt-legal-defs" checked>
+        <div><div class="check-label">הוסף הגדרות</div><div class="check-sub">הגדר מונחים מרכזיים</div></div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="opt-legal-formal" checked>
+        <div><div class="check-label">נוסח פורמלי מלא</div><div class="check-sub">"הצדדים", "בהתאם להוראות"</div></div>
+      </label>
+    </div>
+    <div id="opts-eng-extra" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <label class="check-row">
+        <input type="checkbox" id="opt-eng-active" checked>
+        <div><div class="check-label">Active voice</div><div class="check-sub">Prefer active over passive</div></div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="opt-eng-concise" checked>
+        <div><div class="check-label">Concise & clear</div><div class="check-sub">Eliminate redundancy</div></div>
+      </label>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- HEADING SELECTOR -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);font-family:var(--FU);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px">הוספת כותרות</div>
+      <div class="head-grid">
+        <div class="head-card" id="hc-none" onclick="setHeading('none')">
+          <div class="head-icon">📄</div>
+          <div class="head-title">ללא כותרות</div>
+          <div class="head-desc">טקסט רץ רציף</div>
+        </div>
+        <div class="head-card sel" id="hc-topic" onclick="setHeading('topic')">
+          <div class="head-icon">🎯</div>
+          <div class="head-title">לפני נושא חדש</div>
+          <div class="head-desc">AI מזהה מעבר נושא</div>
+        </div>
+        <div class="head-card" id="hc-medium" onclick="setHeading('medium')">
+          <div class="head-icon">📑</div>
+          <div class="head-title">מידי פעם</div>
+          <div class="head-desc">כל 5–8 פסקאות</div>
+        </div>
+        <div class="head-card" id="hc-frequent" onclick="setHeading('frequent')">
+          <div class="head-icon">📋</div>
+          <div class="head-title">הרבה כותרות</div>
+          <div class="head-desc">כל 2–3 פסקאות</div>
+        </div>
+        <div class="head-card" id="hc-custom" onclick="setHeading('custom')">
+          <div class="head-icon">✏️</div>
+          <div class="head-title">לפי הוראות</div>
+          <div class="head-desc">הוראות שלך בתיבה למטה</div>
+        </div>
+      </div>
+      <div id="heading-opts" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+        <div class="field">
+          <label>סגנון כותרת</label>
+          <select id="hstyle">
+            <option value="centered">מרכזית — שורה נפרדת</option>
+            <option value="inline">שוטפת — בתחילת הפסקה</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>פורמט</label>
+          <select id="hformat">
+            <option value="torah">תורני — "בעניין...", "דין..."</option>
+            <option value="alpha">אלפביתי — א., ב., ג.</option>
+            <option value="numeric">מספרי — 1., 2., 3.</option>
+            <option value="free">חופשי לפי תוכן</option>
+          </select>
+        </div>
+      </div>
+      <div id="heading-free-wrap" style="display:none;margin-top:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);font-family:var(--FU);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:5px">✏️ הוראת כותרת מדויקת — תחליף לבחירות למעלה</div>
+        <input type="text" id="heading-free" placeholder='למשל: "שאלה:" לפני כל שאלה, "תשובה:" לפני כל תשובה' style="width:100%;font-family:var(--F);font-size:13px;padding:9px 12px;border:1px solid var(--border);border-radius:4px;background:var(--cream);color:var(--ink);direction:rtl;outline:none">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--FU)">אם מלאת כאן — הוראה זו תינתן ל-AI במקום הבחירות שלמעלה</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SETTINGS TOGGLE -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="toggleSection('sec-edit')" id="btn-sec-edit" style="font-weight:700">⚙️ הגדרות עריכה ▾</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleSection('sec-design')" id="btn-sec-design">🎨 עיצוב הפלט ▾</button>
+    </div>
+
+    <!-- EDIT SETTINGS -->
+    <div id="sec-edit">
+    <!-- MAIN SETTINGS -->
+    <div class="sgrid" style="margin-bottom:16px">
+      <div class="field">
+        <label>עוצמת עריכה</label>
+        <select id="strength">
+          <option value="ancient">📜 ספר ישן — פיסוק ומ"מ בלבד</option>
+          <option value="light" selected>✂ שיוף קל — שיפור לשון בלבד</option>
+          <option value="medium">✍ שכתוב חלקי — ניסוח מחדש חלקי</option>
+          <option value="full">🔄 שכתוב מלא — כתיבה מחדש</option>
+        </select>
+      </div>
+    </div><!-- /sgrid-strength -->
+    </div><!-- /sec-edit -->
+
+    <div class="divider"></div>
+
+    <!-- DESIGN SECTION (collapsible) -->
+    <div id="sec-design" style="display:none">
+    <div class="sgrid" style="margin-bottom:16px">
+      <div class="field">
+        <label>גודל גופן</label>
+        <select id="fsize">
+          <option value="14">14 — קטן</option>
+          <option value="16" selected>16 — רגיל</option>
+          <option value="18">18 — גדול</option>
+          <option value="20">20 — גדול מאוד</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ריווח שורות</label>
+        <select id="lspace">
+          <option value="1.5">1.5 — צפוף</option>
+          <option value="1.8" selected>1.8 — רגיל</option>
+          <option value="2.0">2.0 — מרווח</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>גודל נייר</label>
+        <select id="pgsize">
+          <option value="A4" selected>A4</option>
+          <option value="letter">Letter</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>כותרת מסמך</label>
+        <input type="text" id="doctitle" placeholder="(אופציונלי)">
+      </div>
+      <div class="field">
+        <label>שם קובץ ייצוא</label>
+        <input type="text" id="expname" value="עט-סופר-עריכה">
+      </div>
+    </div>
+    </div><!-- /sec-design -->
+
+    <!-- CUSTOM RULES -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);font-family:var(--FU);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">הוראות מותאמות אישית</div>
+      <textarea class="custom-ta" id="custom-rules" placeholder="לדוגמה: הוסף כותרת שאלה: לפני כל שאלה ותשובה: לפני כל תשובה. שמור על סגנון המחבר."></textarea>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--FU)">💡 כאן ניתן להגדיר גם הנחיות כותרת מדויקות — בחר "לפי הוראות" בסעיף הכותרות למעלה</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="notice n-blue" id="mode-notice">
+      📜 <strong>לשון קודש תורנית:</strong> גוף הספר — לשון הקודש הצחה בלבד. מובאות מהמקורות — כלשונן בדיוק.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:flex-end">
+      <div class="field">
+        <label>מפתח API של Claude</label>
+        <input type="password" id="apikey" placeholder="sk-ant-api03-..." autocomplete="off">
+      </div>
+      <button class="btn btn-outline" style="align-self:flex-end" onclick="toggleKey()">👁</button>
+      <button class="btn btn-outline" style="align-self:flex-end" onclick="testApi()">בדוק</button>
+    </div>
+  </div>
+</div>
+
+<!-- ד PROCESS -->
+<div class="card" id="process-card" style="display:none">
+  <div class="card-top-line"></div>
+  <div class="card-head">
+    <div class="card-title"><span class="step-num">ד</span> עיבוד ועריכה</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="enableManual()">✏️ עריכה ידנית</button>
+      <button class="btn btn-outline btn-sm" onclick="openFullEditor()" id="btn-editor" style="display:none">🖊 עורך מלא</button>
+      <button class="btn btn-outline btn-sm" onclick="openTrackViewer()" id="btn-track" style="display:none">📊 השוואה מלאה</button>
+      <button class="btn btn-outline btn-sm" id="btn-resume" style="display:none" onclick="resumeProc()">▶ המשך</button>
+      <button class="btn btn-outline btn-sm" id="btn-single" onclick="processSingle()">📄 מסמך קטן — בבת אחת</button>
+      <button class="btn btn-gold btn-lg" id="btn-proc" onclick="startProcessing()">⚡ התחל עריכה</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="text-panel">
+        <div class="text-panel-head">
+          <span>מקור — <span id="cur-ch" style="color:var(--gold3)">—</span></span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="ocnt" class="badge"></span>
+            <div class="dot" id="odot"></div>
+          </div>
+        </div>
+        <div class="text-area" id="orig-text">
+          <div class="empty"><div class="empty-icon">📄</div><span>העלה קובץ לצפייה</span></div>
+        </div>
+      </div>
+      <div class="text-panel">
+        <div class="text-panel-head">
+          <span>טקסט מעובד</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="rcnt" class="badge"></span>
+            <div class="dot" id="rdot"></div>
+          </div>
+        </div>
+        <div class="text-area" id="res-text" contenteditable="false" style="direction:rtl;text-align:right">
+          <div class="empty"><div class="empty-icon">✨</div><span>כאן יופיע הטקסט המעובד</span></div>
+        </div>
+        <div id="diff-btn-row" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;display:none">
+          <button class="btn btn-outline btn-sm" id="btn-diff" onclick="toggleDiff()">🔍 הצג שינויים</button>
+          <div id="diff-legend" style="display:none;align-items:center;gap:10px;font-size:12px;font-family:var(--FU)">
+            <span><span style="background:#d4f7d4;padding:1px 6px;border-radius:3px">ירוק</span> = נוסף</span>
+            <span><span style="background:#fdd;padding:1px 6px;border-radius:3px;text-decoration:line-through">אדום</span> = נמחק</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="prog-section" style="display:none" class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" id="pfill"></div></div>
+      <div class="prog-txt" id="ptxt">מעבד...</div>
+      <div class="logbox" id="logbox"></div>
+      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+        <span id="bkstat" style="font-size:11px;color:var(--muted);font-family:var(--FU)"></span>
+        <button class="btn btn-red btn-sm" onclick="stopProc()">⏸ עצור</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ה EXPORT -->
+<div class="card" id="export-card" style="display:none">
+  <div class="card-top-line"></div>
+  <div class="card-head"><div class="card-title"><span class="step-num">ה</span> ייצוא לקובץ Word</div></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="field">
+        <label>עקוב אחרי שינויים</label>
+        <select id="exp-track">
+          <option value="none">ללא — טקסט סופי</option>
+          <option value="track">כן — קבל/דחה בWord</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ניקוד פסוקים</label>
+        <select id="exp-pasuk-nk">
+          <option value="none">ללא ניקוד</option>
+          <option value="nikud">עם ניקוד מלא</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <button class="btn btn-green btn-lg" onclick="exportWord()">💾 ייצא לWord (.docx)</button>
+      <button class="btn btn-outline" onclick="exportWithTrack()" title="מייצא שני קבצים — מקור וערוך. פתח ב-Word ובחר: סקירה ← השוואה">📋 ייצוא + מעקב שינויים</button>
+      <span style="font-size:12px;color:var(--muted);font-family:var(--FU)">כולל הערות שוליים</span>
+    </div>
+    <div id="epwrap" style="display:none">
+      <div style="font-size:11px;color:var(--muted);margin:10px 0 4px;font-family:var(--FU)">תצוגה מקדימה:</div>
+      <div class="exp-preview" id="eprev"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- 3-PANE TRACK VIEWER -->
+<div id="track-viewer">
+  <div class="tv-toolbar">
+    <button class="tb-btn" onclick="closeTrackViewer()">✕ סגור</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="tv-sync-btn" onclick="toggleSync()" style="background:rgba(76,175,80,0.15);border-color:rgba(76,175,80,0.4)">🔗 גלילה מסונכרנת</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="resetPaneSizes()">⬜ איפוס גדלים</button>
+    <span style="font-size:11px;color:rgba(200,151,42,0.4);font-family:var(--FU)">גרור את המחיצה לשינוי גודל</span>
+    <span class="tv-title">✒ עט סופר — השוואה</span>
+  </div>
+  <div class="tv-panes" id="tv-panes">
+    <!-- Pane 1: Track Changes (large) -->
+    <div class="tv-pane" id="tvp-track" style="flex:3">
+      <div class="tv-pane-head">
+        <span>🔍 עקוב אחרי שינויים</span>
+        <span id="tv-change-count" style="font-size:10px;opacity:0.6"></span>
+      </div>
+      <div class="tv-pane-body" id="tv-track-body" onscroll="syncScroll('track')"></div>
+    </div>
+    <div class="tv-resizer" id="tvr-1" onmousedown="startResize(event,'tvr-1')"></div>
+    <!-- Pane 2: Original (small) -->
+    <div class="tv-pane" id="tvp-orig" style="flex:1;min-width:120px">
+      <div class="tv-pane-head">📄 מקור</div>
+      <div class="tv-pane-body" id="tv-orig-body" onscroll="syncScroll('orig')"></div>
+    </div>
+    <div class="tv-resizer" id="tvr-2" onmousedown="startResize(event,'tvr-2')"></div>
+    <!-- Pane 3: Edited (small) -->
+    <div class="tv-pane" id="tvp-edit" style="flex:1;min-width:120px">
+      <div class="tv-pane-head">✅ ערוך</div>
+      <div class="tv-pane-body" id="tv-edit-body" onscroll="syncScroll('edit')"></div>
+    </div>
+  </div>
+  <div class="tv-statusbar">
+    <div class="tv-sync-indicator">
+      <div class="tv-sync-dot" id="tv-sync-dot"></div>
+      <span>גלילה מסונכרנת פעילה</span>
+    </div>
+    <span id="tv-stats"></span>
+    <span>💡 לחץ על שינוי בעמודת עקוב לניווט מהיר</span>
+  </div>
+</div>
+
+<!-- FULLSCREEN EDITOR -->
+<div id="editor-full" class="editor-full">
+  <div class="editor-toolbar">
+    <button class="tb-btn" onclick="edCmd('bold')" title="הדגשה (Ctrl+B)"><b>ב</b></button>
+    <button class="tb-btn" onclick="edCmd('italic')" title="נטוי (Ctrl+I)"><i>נ</i></button>
+    <button class="tb-btn" onclick="edCmd('underline')" title="קו תחתון (Ctrl+U)"><u>ק</u></button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="edUndo()" title="בטל (Ctrl+Z)">↩ בטל</button>
+    <button class="tb-btn" onclick="edRedo()" title="חזור (Ctrl+Y)">↪ חזור</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="tb-find-btn" onclick="toggleFind()" title="חיפוש (Ctrl+F)">🔍 חיפוש</button>
+    <button class="tb-btn" onclick="edSelectAll()" title="סמן הכל (Ctrl+A)">סמן הכל</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="tb-diff-btn" onclick="toggleEdDiff()">🔍 הצג שינויים</button>
+    <button class="tb-btn" onclick="edCopyAll()">📋 העתק הכל</button>
+    <button class="tb-btn" onclick="closeFullEditor()" style="background:rgba(122,16,16,0.3);border-color:rgba(180,60,60,0.5)">✕ סגור</button>
+    <span class="etitle">✒ עט סופר — עורך</span>
+  </div>
+  <div class="find-bar" id="find-bar">
+    <span style="color:var(--gold2);font-family:var(--FU);font-size:12px;font-weight:700">החלף:</span>
+    <input type="text" id="rep-input" placeholder="החלף ב..." dir="rtl" oninput="doReplace(false)">
+    <span style="color:var(--gold2);font-family:var(--FU);font-size:12px;font-weight:700">חפש:</span>
+    <input type="text" id="find-input" placeholder="חפש בטקסט..." dir="rtl" oninput="doFind()" onkeydown="findKey(event)">
+    <span class="find-info" id="find-info"></span>
+    <button class="tb-btn" onclick="findNext(-1)">▲</button>
+    <button class="tb-btn" onclick="findNext(1)">▼</button>
+    <button class="tb-btn" onclick="doReplace(true)" style="background:rgba(200,151,42,0.2)">החלף אחד</button>
+    <button class="tb-btn" onclick="doReplaceAll()" style="background:rgba(200,151,42,0.2)">החלף הכל</button>
+    <button class="tb-btn" onclick="toggleFind()">✕</button>
+  </div>
+  <div id="editor-body" class="editor-body" contenteditable="true" dir="rtl" spellcheck="false"></div>
+  <div class="editor-statusbar">
+    <span id="ed-wordcount">0 מילים</span>
+    <span id="ed-pos">שורה 1, עמדה 1</span>
+    <span>לחץ Ctrl+F לחיפוש · Ctrl+B להדגשה · Esc לסגירה</span>
+  </div>
+</div>
+
+<!-- PAUSE OVERLAY -->
+<div id="pause-overlay">
+  <div class="pause-box">
+    <h3>✅ פרק הושלם</h3>
+    <div class="pause-ch" id="pd-title"></div>
+    <div class="pause-prev" id="pd-prev"></div>
+    <div class="pause-btns">
+      <button class="btn btn-green" onclick="pauseAct('go')">▶ אשר והמשך</button>
+      <button class="btn btn-outline" onclick="pauseAct('edit')">✏️ ערוך תחילה</button>
+      <button class="btn btn-outline" onclick="pauseAct('skip')">⏭ דלג</button>
+      <button class="btn btn-red" onclick="pauseAct('stop')">⛔ עצור</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+// Detect file:// protocol
+if (window.location.protocol === 'file:') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const w = document.getElementById('cors-warning');
+    if (w) w.style.display = 'block';
+  });
+}
+
+const S = {
+  mode: 'torah', flow: 'auto', heading: 'topic',
+  raw: '', file: '',
+  chapters: [], results: {}, footnotes: [],
+  allResult: '', curCh: 0,
+  processing: false, stop: false,
+  pauseResolve: null,
+};
+
+// ── UPLOAD ──
+document.getElementById('upload-area').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+document.getElementById('upload-area').addEventListener('dragover', e => {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.add('drag');
+});
+document.getElementById('upload-area').addEventListener('dragleave', () => {
+  document.getElementById('upload-area').classList.remove('drag');
+});
+document.getElementById('upload-area').addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.docx')) { alert('נא להעלות קובץ .docx בלבד'); return; }
+  setGst('wrk', '⚙ קורא...');
+  try {
+    const ab = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(ab);
+    const mRes = await mammoth.extractRawText({ arrayBuffer: ab });
+    S.raw = mRes.value.trim();
+    S.file = file.name;
+    S.footnotes = await extractFN(zip);
+    const hasFN = S.footnotes.length > 0;
+    if (hasFN) S.raw += '\n\n---הערות שוליים---\n' + S.footnotes.map(f => `[${f.id}] ${f.text}`).join('\n');
+    document.getElementById('fn-badge').style.display = hasFN ? 'inline-flex' : 'none';
+    document.getElementById('file-display').style.display = 'flex';
+    document.getElementById('fname').textContent = file.name;
+    document.getElementById('fmeta').textContent = fmtB(file.size) + ' · ' + S.raw.length.toLocaleString('he') + ' תווים' + (hasFN ? ' · ' + S.footnotes.length + ' הערות שוליים' : '');
+    document.getElementById('fcnt').textContent = wc(S.raw) + ' מילים';
+    // Check saved progress on first load
+  if (!S._progressChecked) {
+    S._progressChecked = true;
+    try {
+      const saved = localStorage.getItem('et_sofer_progress');
+      if (saved) {
+        const data = JSON.parse(saved);
+        const age = (Date.now() - data.ts) / 60000;
+        if (age < 480 && data.results && Object.keys(data.results).length > 0) {
+          const done = Object.keys(data.results).length;
+          if (confirm('נמצאה עריכה שמורה: ' + done + ' פרקים הושלמו (לפני ' + Math.round(age) + ' דקות).\nלהמשיך ממקום שהופסקה?')) {
+            S.results = data.results; S.chapters = data.chapters || [];
+            S.curCh = data.curCh || done; S.mode = data.mode || S.mode;
+            document.getElementById('export-card').style.display = 'block';
+            document.getElementById('btn-editor').style.display = 'inline-flex';
+    document.getElementById('btn-track').style.display = 'inline-flex';
+            showPreview();
+            return;
+          }
+        }
+      }
+    } catch(e) {}
+  }
+  S.chapters = detectCh(S.raw);
+    renderCh();
+    document.getElementById('chapter-section').style.display = 'block';
+    showCh(0);
+    ['flow-card','settings-card','process-card'].forEach(id => document.getElementById(id).style.display = 'block');
+    setGst('rdy', '✓ נטען');
+    lg('ok', `נטען: ${file.name} · ${S.chapters.length} פרקים · ${S.footnotes.length} הערות שוליים`);
+  } catch(e) {
+    setGst('er', '✕ שגיאה');
+    alert('שגיאה בקריאת הקובץ: ' + e.message);
+  }
+}
+
+async function extractFN(zip) {
+  const fns = [];
+  try {
+    const f = zip.file('word/footnotes.xml');
+    if (!f) return fns;
+    const xml = await f.async('string');
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    doc.querySelectorAll('footnote').forEach(fn => {
+      const id = fn.getAttribute('w:id') || fn.getAttribute('id');
+      if (!id || id === '0' || id === '-1') return;
+      const txt = [...fn.querySelectorAll('t')].map(t => t.textContent).join('');
+      if (txt.trim()) fns.push({ id: parseInt(id), text: txt.trim() });
+    });
+  } catch(e) {}
+  return fns.sort((a,b) => a.id - b.id);
+}
+
+function clearFile() {
+  S.raw = ''; S.file = ''; S.chapters = []; S.footnotes = []; S.results = {};
+  try { localStorage.removeItem('et_sofer_progress'); } catch(e) {}
+  document.getElementById('file-display').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  document.getElementById('fn-badge').style.display = 'none';
+  document.getElementById('chapter-section').style.display = 'none';
+  document.getElementById('ch-list').innerHTML = '';
+  document.getElementById('orig-text').innerHTML = '<div class="empty"><div class="empty-icon">📄</div><span>העלה קובץ לצפייה</span></div>';
+  document.getElementById('res-text').innerHTML = '<div class="empty"><div class="empty-icon">✨</div><span>כאן יופיע הטקסט המעובד</span></div>';
+  ['flow-card','settings-card','process-card','export-card'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('prog-section').style.display = 'none';
+  document.getElementById('epwrap').style.display = 'none';
+  document.getElementById('odot').classList.remove('on');
+  document.getElementById('rdot').classList.remove('on');
+  document.getElementById('ocnt').textContent = '';
+  document.getElementById('rcnt').textContent = '';
+  setGst('idle', '⬤ ממתין');
+}
+
+// ── CHAPTERS ──
+const MAX_CH_CHARS = 9000; // ~3000 tokens safe limit
+
+function estimateTokens(text) { return Math.ceil(text.length / 3); }
+
+function autoSplitCh(ch) {
+  // Split oversized chapter by paragraphs
+  const paras = ch.text.split(/\n\n+/);
+  const result = [];
+  let cur = { title: ch.title, text: '' };
+  for (const para of paras) {
+    if ((cur.text + para).length > MAX_CH_CHARS && cur.text.trim()) {
+      result.push({ title: cur.title + (result.length > 0 ? ' (המשך)' : ''), text: cur.text.trim() });
+      cur = { title: ch.title + ' (המשך)', text: para + '\n\n' };
+    } else {
+      cur.text += para + '\n\n';
+    }
+  }
+  if (cur.text.trim()) result.push({ title: cur.title, text: cur.text.trim() });
+  return result;
+}
+
+function detectCh(text) {
+  // Priority 1: @@ user markers
+  if (text.includes('@@')) {
+    const parts = text.split(/@@+/).filter(p => p.trim());
+    const chs = parts.map((part, i) => {
+      const lines = part.trim().split('\n');
+      const title = lines[0].trim() || ('מאמר ' + (i+1));
+      const body = lines.slice(1).join('\n').trim() || part.trim();
+      return { title, text: body };
+    });
+    // Check for oversized chapters
+    const tooBig = chs.filter(ch => ch.text.length > MAX_CH_CHARS);
+    if (tooBig.length > 0) {
+      const names = tooBig.map(ch => '"' + ch.title.slice(0,20) + '"').join(', ');
+      if (confirm('הפרקים ' + names + ' גדולים מדי לעיבוד בבת אחת.\nלפצל אותם אוטומטית לתת-פרקים?')) {
+        return chs.flatMap(ch => ch.text.length > MAX_CH_CHARS ? autoSplitCh(ch) : [ch]);
+      }
+    }
+    return chs;
+  }
+
+  // Priority 2: Auto-detect headings
+  const lines = text.split('\n');
+  const chs = [];
+  let cur = null;
+  const strongPats = [
+    /^(פרק|חלק|יחידה|סימן|הקדמה|מבוא|סיכום|נספח|ביאור|שער|בענין|דין)\s+[\u05D0-\u05EA\d'"]/i,
+    /^(chapter|part|section|introduction|conclusion|appendix)\s+[\d\w]/i,
+    /^[\u05D0-\u05EA]\.\s{2,}\S/,
+    /^\d{1,3}\.\s{2,}\S/,
+    /^={3,}|^-{3,}/,
+  ];
+  lines.forEach((line, i) => {
+    const t = line.trim();
+    const isStrongH = t.length > 2 && t.length < 120 && strongPats.some(p => p.test(t));
+    if (isStrongH) {
+      if (cur && cur.lines.join('\n').trim().length > 100) {
+        cur.text = cur.lines.join('\n').trim(); chs.push(cur);
+      }
+      cur = { title: t, lines: [] };
+    } else if (cur) {
+      cur.lines.push(line);
+    } else {
+      if (t) { cur = { title: 'פתיחה', lines: [line] }; }
+    }
+  });
+  if (cur && cur.lines.join('\n').trim().length > 50) {
+    cur.text = cur.lines.join('\n').trim(); chs.push(cur);
+  }
+  const result = chs.length <= 1 ? [{ title: 'המסמך כולו', text: text.trim() }] : chs;
+  // Auto-split oversized
+  return result.flatMap(ch => ch.text.length > MAX_CH_CHARS ? autoSplitCh(ch) : [ch]);
+}
+
+function renderCh() {
+  const list = document.getElementById('ch-list');
+  list.innerHTML = '';
+  S.chapters.forEach((ch, i) => {
+    const d = document.createElement('div');
+    d.className = 'ch-item'; d.id = 'chi-' + i;
+    d.onclick = () => showCh(i);
+    const pg = Math.ceil((ch.text||'').length / 1500);
+    d.innerHTML = `<div class="ch-num">${i+1}</div><div class="ch-title-text">${ch.title}</div><div class="ch-meta-text">~${pg} עמ'</div><div class="ch-st" id="chs-${i}"></div>`;
+    list.appendChild(d);
+  });
+}
+
+function redetect() { S.chapters = detectCh(S.raw); renderCh(); lg('in', `זיהוי מחדש: ${S.chapters.length} פרקים`); }
+
+function showCh(i) {
+  if (!S.chapters[i]) return;
+  S.curCh = i;
+  const el = document.getElementById('orig-text');
+  el.innerHTML = ''; el.textContent = S.chapters[i].text || '';
+  document.getElementById('odot').classList.add('on');
+  document.getElementById('ocnt').textContent = wc(S.chapters[i].text || '') + ' מילים';
+  document.getElementById('cur-ch').textContent = S.chapters[i].title;
+  document.querySelectorAll('.ch-item').forEach((el, j) => el.classList.toggle('ch-active', j === i));
+}
+
+function chSt(i, cls, label) {
+  const el = document.getElementById('chi-' + i);
+  const st = document.getElementById('chs-' + i);
+  if (el) { el.className = 'ch-item ' + cls; }
+  if (st) { st.textContent = label; st.style.color = cls === 'ch-done' ? 'var(--green)' : cls === 'ch-error' ? 'var(--red)' : 'var(--gold3)'; }
+}
+
+// ── MODE / FLOW / HEADING ──
+function setMode(m) {
+  S.mode = m;
+  document.querySelectorAll('.mtab').forEach((t, i) => t.classList.toggle('active', ['torah','heb','legal','eng'][i] === m));
+
+  const notices = {
+    torah: '📜 <strong>לשון קודש תורנית:</strong> גוף הספר — לשון הקודש הצחה בלבד. מובאות מהמקורות — כלשונן בדיוק.',
+    heb:   '✍ <strong>עברית מקצועית:</strong> שכתוב לעברית תקנית, בהירה, קולחת וללא סרבולים.',
+    legal: '⚖ <strong>מסמכים משפטיים:</strong> ניסוח משפטי תקני — חוזים, תצהירים, כתבי טענות, החלטות.',
+    eng:   '🇬🇧 <strong>English Professional:</strong> Rewrite to clear, polished, professional English.',
+  };
+  const n = document.getElementById('mode-notice');
+  n.innerHTML = notices[m];
+  n.className = 'notice ' + (m === 'legal' ? 'n-gold' : 'n-blue');
+
+  // Nikud label per mode
+  const nikSub = document.getElementById('nikud-sub');
+  if (nikSub) nikSub.textContent = m === 'torah' ? 'ניקוד מלא לפי כללי הדקדוק' : m === 'eng' ? 'N/A' : 'ניקוד לפי הצורך';
+  // Update pasuk nikud option visibility
+  const pnRow = document.getElementById('pasuk-nikud-row');
+  if (pnRow) pnRow.style.display = (m === 'torah' || m === 'heb') ? 'flex' : 'none';
+  const nikRow = document.getElementById('opt-nikud').closest('label');
+  nikRow.style.opacity = m === 'eng' ? '0.3' : '1';
+  nikRow.style.pointerEvents = m === 'eng' ? 'none' : '';
+
+  // Quotes label per mode
+  const qLabel = document.getElementById('quotes-label');
+  const qSub = document.getElementById('quotes-sub');
+  if (qLabel) qLabel.textContent = m === 'torah' ? 'שמור מובאות כלשונן' : m === 'eng' ? 'Preserve quotes verbatim' : 'שמור ציטוטים כלשונם';
+  if (qSub) qSub.textContent = m === 'torah' ? 'פסוקים, גמרא, ראשונים' : m === 'eng' ? 'Keep original quotes intact' : 'ציטוטים מקוריים ללא שינוי';
+
+  // FN label per mode
+  const fnSub = document.getElementById('fn-sub');
+  if (fnSub) fnSub.textContent = m === 'eng' ? 'Improve footnote language' : 'הסברים — ערוך; ציטוטים — כלשונם';
+
+  // Show/hide mode-specific extra options
+  ['torah','heb','legal','eng'].forEach(x => {
+    const el = document.getElementById('opts-' + x + '-extra');
+    if (el) el.style.display = x === m ? 'grid' : 'none';
+  });
+
+  // Heading format options per mode
+  const hfmt = document.getElementById('hformat');
+  if (hfmt) {
+    // Clear and rebuild
+    const torahOpt = m === 'torah' ? '<option value="torah">תורני — "בעניין...", "דין..."</option>' : '';
+    const romanOpt = m === 'eng' ? '<option value="roman">Roman — I., II., III.</option>' : '';
+    const engFree = m === 'eng' ? '<option value="free">Free — based on content</option>' : '<option value="free">חופשי לפי תוכן</option>';
+    const alphaOpt = m === 'eng' ? '' : '<option value="alpha">אלפביתי — א., ב., ג.</option>';
+    const numOpt = m === 'eng' ? '<option value="numeric">Numeric — 1., 2., 3.</option>' : '<option value="numeric">מספרי — 1., 2., 3.</option>';
+    hfmt.innerHTML = torahOpt + engFree + alphaOpt + numOpt + romanOpt;
+    hfmt.value = m === 'torah' ? 'torah' : 'free';
+  }
+
+  // Process button labels per mode
+  const procBtn = document.getElementById('btn-proc');
+  const singleBtn = document.getElementById('btn-single');
+  const labels = { torah: '⚡ התחל עריכה תורנית', heb: '⚡ התחל עריכה', legal: '⚡ נסח מסמך', eng: '⚡ Start Editing' };
+  const singleLabels = { torah: '📄 מאמר קטן — בבת אחת', heb: '📄 מסמך קטן — בבת אחת', legal: '📄 מסמך קצר — בבת אחת', eng: '📄 Short doc — all at once' };
+  if (procBtn) procBtn.textContent = labels[m] || '⚡ התחל עריכה';
+  if (singleBtn) singleBtn.textContent = singleLabels[m] || '📄 מסמך קטן — בבת אחת';
+
+  // Text direction
+  const res = document.getElementById('res-text');
+  res.style.direction = m === 'eng' ? 'ltr' : 'rtl';
+  res.style.textAlign = m === 'eng' ? 'left' : 'right';
+}
+
+function setFlow(f) {
+  S.flow = f;
+  ['auto','pause','scan'].forEach(x => document.getElementById('fc-' + x).classList.toggle('sel', x === f));
+  const info = { auto: '⚡ <strong>ללא עצירה:</strong> עובר על כל הפרקים ברצף.', pause: '🔍 <strong>עצור אחרי כל פרק:</strong> אפשרות לאשר, לערוך או לדלג.', scan: '🔭 <strong>סריקה תחילה:</strong> דוח בעיות לשון לפני עריכה.' };
+  document.getElementById('flow-info').innerHTML = info[f];
+}
+
+function setHeading(h) {
+  S.heading = h;
+  ['none','topic','medium','frequent','custom'].forEach(x => {
+    const el = document.getElementById('hc-' + x);
+    if (el) el.classList.toggle('sel', x === h);
+  });
+  document.getElementById('heading-opts').style.opacity = h === 'none' ? '0.4' : '1';
+  // Show/hide free text field
+  const freeWrap = document.getElementById('heading-free-wrap');
+  if (freeWrap) freeWrap.style.display = (h !== 'none') ? 'block' : 'none';
+  if (h === 'custom') {
+    const freeInput = document.getElementById('heading-free');
+    if (freeInput) {
+      freeInput.style.borderColor = 'var(--gold)';
+      setTimeout(() => freeInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+      freeInput.focus();
+    }
+    const ta = document.getElementById('custom-rules');
+    if (ta) { ta.style.borderColor = 'var(--gold)'; ta.style.boxShadow = '0 0 0 2px rgba(200,151,42,0.25)'; }
+  } else {
+    const freeInput = document.getElementById('heading-free');
+    if (freeInput) freeInput.style.borderColor = '';
+    const ta = document.getElementById('custom-rules');
+    if (ta) { ta.style.borderColor = ''; ta.style.boxShadow = ''; }
+  }
+}
+
+// ── PROMPTS ──
+function headingInstr() {
+  // Check if user wrote a free-text heading instruction
+  const freeVal = (document.getElementById('heading-free')?.value || '').trim();
+  if (freeVal && S.heading !== 'none') {
+    return (S.mode === 'eng' ? 'Heading instruction (exact): ' : 'הוראת כותרת מדויקת: ') + freeVal;
+  }
+  if (S.heading === 'none') return S.mode === 'eng' ? 'Do not add any headings — continuous text only.' : 'אין להוסיף כותרות — טקסט רץ רציף בלבד.';
+  if (S.heading === 'custom') {
+    const rules = (document.getElementById('custom-rules')?.value || '').trim();
+    if (rules && (rules.includes('כותרת') || rules.includes('heading') || rules.includes('Heading'))) {
+      return S.mode === 'eng' ? 'Heading instructions: follow the custom instructions below for all heading placement and formatting.' : 'כותרות: פעל לפי ההוראות המותאמות שלמטה לגבי מיקום וסגנון הכותרות.';
+    }
+    return S.mode === 'eng' ? 'Add headings as instructed in the custom rules below.' : 'הוסף כותרות לפי ההוראות המותאמות שלמטה.';
+  }
+  const freq = {
+    topic:    S.mode === 'eng' ? 'Add a heading only when a genuinely new topic begins.' : 'הוסף כותרת רק כשמתחיל נושא חדש ממשי.',
+    medium:   S.mode === 'eng' ? 'Add a heading approximately every 5–8 paragraphs at natural transitions.' : 'הוסף כותרת כל 5–8 פסקאות במעברים טבעיים.',
+    frequent: S.mode === 'eng' ? 'Add headings frequently — approximately every 2–3 paragraphs.' : 'הוסף כותרות בתדירות גבוהה — כל 2–3 פסקאות.',
+  }[S.heading] || '';
+  const styleVal = document.getElementById('hstyle').value;
+  const style = styleVal === 'centered'
+    ? (S.mode === 'eng' ? 'Style: centered heading on its own line. Mark with ### before the heading text (e.g. ### My Heading).' : 'סגנון: כותרת מרכזית בשורה נפרדת. סמן כותרת עם ### לפניה (לדוגמה: ### בענין הדין).')
+    : (S.mode === 'eng' ? 'Style: inline at start of paragraph, bold, followed by colon. Mark with ## before it.' : 'סגנון: כותרת שוטפת בתחילת הפסקה ואחריה נקודתיים. סמן עם ## לפניה.');
+  const fmtMap = {
+    torah:   'פורמט: לשון תורנית — "בעניין...", "דין...", "ענין..."',
+    alpha:   'פורמט: אלפביתי — א., ב., ג.',
+    numeric: S.mode === 'eng' ? 'Format: numeric — 1., 2., 3.' : 'פורמט: מספרי — 1., 2., 3.',
+    roman:   'Format: Roman numerals — I., II., III.',
+    free:    S.mode === 'eng' ? 'Format: descriptive, based on content.' : 'פורמט: חופשי ותיאורי לפי תוכן.',
+  };
+  const fmt = fmtMap[document.getElementById('hformat').value] || '';
+  return (S.mode === 'eng' ? 'Heading rule: ' : 'כלל כותרות: ') + freq + ' ' + style + (fmt ? ' ' + fmt : '');
+}
+
+function customRules() {
+  const r = (document.getElementById('custom-rules').value || '').trim();
+  return r ? `הוראות מיוחדות (חובה לקיים):\n${r}` : '';
+}
+
+function buildPrompt(scan = false) {
+  const strengthVal = document.getElementById('strength').value;
+  const str = {
+    ancient: 'מצב ספר ישן: אסור לשנות ולו מילה אחת מגוף הספר. מותר רק: א) הוספת פיסוק ונקודות. ב) קיטוע לקטעים. ג) הוספת מראי מקומות לפסוקים ומאמרי חז"ל. ד) פתיחת ר"ת שאינם מקובלים. אין לשנות שום מילה, אין להוסיף מילים, אין למחוק מילים.',
+    light: 'שיוף קל: שייף את הלשון שתהיה מקצועית, קריאה ונעימה. ככל הניתן — השאר את מילות המחבר כפי שהן ורק שייף אותן. אין לשכתב משפטים מחדש במילים אחרות לחלוטין. אין למחוק. אין להוסיף תוכן. ציטוטים ומ"מ — כלשונם.',
+    medium: 'שכתוב חלקי: שכתב חלקי לניסוח יפה יותר. שמור על כל הרעיונות והחידושים. אל תמחק שום חידוש. ציטוטים — כלשונם בדיוק. מראי מקומות — שמור אותם.',
+    full: 'שכתוב מלא: שכתב מחדש במילים אחרות לניסוח מקצועי ומלוטש. חובה לכלול את כל הדברים הכתובים — אין לדלג על אף נקודה, אף משפט, אף ענין. אם המחבר כתב משהו — חייב להופיע גם בפלט, ולו בניסוח שונה. ציטוטים — כלשונם בדיוק. מראי מקומות — שמור אותם.'
+  }[strengthVal] || '';
+  const nikud = document.getElementById('opt-nikud').checked;
+  const quotes = document.getElementById('opt-quotes').checked;
+  const fn = document.getElementById('opt-fn').checked;
+
+  if (scan) return `אתה עורך לשון מומחה. קרא את הטקסט וצור דוח קצר: בעיות לשון עיקריות, מילים לא מתאימות, המלצות. הגב בעברית ברורה.`;
+
+  if (S.mode === 'torah') return `אתה עורך לשון הקודש מומחה, בעל בקיאות רחבה בכל ספרות ישראל לדורותיה.
+משימתך: לשכתב את הטקסט שלפניך לנוסח תורני יפה, מלוטש ומקצועי.
+
+═══════════════════════════════════════
+כלל א — לשון הספר (חובה מוחלטת)
+═══════════════════════════════════════
+גוף הספר יהיה כתוב אך ורק בלשון הקודש הצחה.
+אין להשתמש בשום מילה ארמית בגוף הטקסט.
+אין להשתמש בעברית מודרנית.
+אין להשתמש בלועזיות.
+אין להשתמש בביטויים למדניים כגון: ודו"ק / ועיין היטב / ואכמ"ל / וד"ל.
+
+המרות חובה — לשון מודרנית → לשון קודש:
+• "בגלל" / "בשל" → "מחמת" / "מפני"
+• "כי אז" / "לכן" → "ולפיכך" / "ועל כן" / "ומשום כך"
+• "כדי ש" → "למען" / "כדי"
+• "הבעיה" → "הקושי" / "הדבר הקשה"
+• "פתרון" → "תקנה" / "עצה" / "תיקון"
+• "חשוב" → "נכבד" / "עיקרי"
+• "לא ניתן" → "אי אפשר" / "אין יד אדם שולטת"
+• "מציאות" → "הנמצא" / "המצב"
+• "חוק" → "דין" / "תקנה"
+• "חובה" → "חיוב"
+• "בעיה" → "קושי" / "קושיא"
+• "נושא" → "ענין" / "דבר"
+• "אופן" → "דרך" / "צורה"
+• "מקרה" → "ענין" / "דבר"
+• "תהליך" → "מהלך"
+• "שלב" → "ענין" זה אינו מתאים — השמט
+• "קטע" → "פסקה" / "ענין"
+• "ניגוד ל..." → "שלא כ..." / "להיפך מ..."
+• "להציג" → "להביא" / "לכתוב"
+• "מסכם" → "כותב לבסוף" / "מסיים"
+• "מתייחס" → "כותב על" / "מדבר בענין"
+• "מבוסס על" → "יסודו ב..." / "נשען על"
+
+═══════════════════════════════════════
+כלל ב — מובאות מן המקורות (קודש!)
+═══════════════════════════════════════
+כל מובאה מן המקרא, המשנה, הגמרא, המדרש, הראשונים והאחרונים —
+תובא כלשונה המדויק ללא שינוי כלל. אפילו תיבה אחת אין לשנות.
+ציטוט פסוק — בגרש יחיד לפניו ולאחריו: 'בראשית ברא אלקים'
+ציטוט ארוך (מעל 2 שורות) — בהזחה פנימה.
+ציטוט קצר בתוך הטקסט — בגרש יחיד.
+ציטוט בתוך ציטוט — בגרש יחיד (לא גרשיים).
+לאחר ציטוט מדברי חז"ל או מפרשים — יש לכתוב "ע"כ" בסופו (אלא אם ההערה מסתיימת בציטוט).
+
+═══════════════════════════════════════
+כלל ג — ניסוח מקצועי
+═══════════════════════════════════════
+• הכתיבה תהיה ברורה, בהירה, מסודרת ונעימה לקריאה.
+• לא ארוך מדי ולא קצר מדי — ממוקד ורהוט.
+• אין לסרבל משפטים או לכפול רעיון פעמיים במילים שונות.
+• יובן בבירור מי אומר כל דבר, היכן מתחילים דבריו והיכן הם מסתיימים.
+• אחידות בכל הספר — אין שכל פרק בסגנון שונה.
+• לשון זכר ונקבה — יש להקפיד: "שתי אפשרויות" (לא שני), "שלושה אנשים" (לא שלש).
+
+═══════════════════════════════════════
+כלל ד — כתיב תקני
+═══════════════════════════════════════
+• מספרים בטקסט — במילים ("ארבעים" לא "40").
+  מספרי עמודים ותאריכים — מותר בספרות.
+• ו' עיצורית בתוך מילה — שתי וי"וים (לא בתחילת מילה ולא בסופה).
+• יו"ד עיצורית בתוך מילה — שתי יו"דים (בדרך כלל).
+• מילים שיש חשש לקריאה שגויה — לנקד חלקית.
+• שמות אנשים ומקומות — ללא ניקוד כפי כתיבם הרגיל.
+• "ענין", "קנין", "מנין" — עם יו"ד אחת בלבד.
+• "קושיא", "סברא", "מסקנא", "גירסא" — עם אל"ף בסוף.
+• "דרשה" — עם ה"א בסוף.
+
+═══════════════════════════════════════
+כלל ה — פיסוק
+═══════════════════════════════════════
+• פיסוק נאות — לא עמוס ולא דל.
+• נקודה — בסוף משפט שלם, בין קושיא לתירוץ.
+• פסיק — במקום עצירה בשטף הקריאה.
+  אין פסיק לפני וי"ו החיבור, לפני "גם", "אף", "או" (אלא אם יש ניגוד).
+• נקודתיים — לפני ציטוט, לפני פירוט, לפני מניית דעות.
+• אין נקודה בסוף כותרות.
+• אין סימני שאלה [?] או קריאה [!] בגוף הטקסט.
+• סוגריים עגולים — למראי מקומות.
+• סוגריים מרובעים — לדברים צדדיים ולהערות אגב.
+
+═══════════════════════════════════════
+כלל ו — ראשי תיבות וקיצורים
+═══════════════════════════════════════
+• למעט בשימוש בקיצורים — רק המקובלים ביותר.
+• "ראה" (לא "ר'") · "על-פי" (לא "ע"פ") · "על-ידי" (לא "ע"י") · "על-שם" (לא "ע"ש").
+• "עמ'" לעמוד (לא "ע'") · "עיי"ש" (לא "ע"ש") · "מהד'" למהדורה.
+• שמות מפרשים מצויים — בר"ת המקובל (רמב"ם, רש"י, ש"ך).
+• שמות מסכתות — בשמן המלא בגוף הטקסט; בר"ת רק בתוך סוגרי מ"מ.
+• גרשיים בר"ת — תמיד לפני האות האחרונה.
+• האות האחרונה בר"ת — לא בצורה סופית (אלא אם קוראים כמילה: תנ"ך, רי"ף).
+• לפתוח את כל ר"ת שאינם ידועים לכל.
+
+═══════════════════════════════════════
+כלל ז — ציון מקורות
+═══════════════════════════════════════
+• לציין מקור לכל מובאה מהתנ"ך וחז"ל.
+• להקדים גמרא למדרש; מדרשי הלכה למדרשי אגדה; מקורות קדומים לאחרונים.
+• לשמור על סדר הדורות — לא להקדים מאוחר לקדמון.
+• תנ"ך: ספר פרק, פסוק (ויקרא ג, ד).
+• תלמוד בבלי: מסכת דף, עמוד (ברכות ב, ב).
+• רמב"ם: שם ההלכה פרק הלכה (אישות פ"ב ה"א).
+• שו"ע: חלק סימן סעיף (חו"מ סי' ד ס"ג).
+• הפניה למקום אחר — תפרט מה ימצא שם: "ראה רמב"ן שהביא ביאור נוסף בענין", ולא "ראה רמב"ן" סתם.
+
+═══════════════════════════════════════
+כלל ח — כותרות
+═══════════════════════════════════════
+• כותרות — תמציתיות ומדויקות.
+• כותרת ראשית — בשורה נפרדת במרכז.
+• כותרת משנית — בשורה נפרדת צמוד לימין.
+• אין נקודה בסוף כותרת.
+• כותרות בנוסח תורני: "בענין...", "דין...", "ביאור...", "פרק ב...".
+
+═══════════════════════════════════════
+כלל ט — שם ה'
+═══════════════════════════════════════
+• שם אדנות — ה' (לא: הוי"ה / יקוק).
+• שם אלקות — אלקים (עם קו"ף, ללא גרשיים, ללא ו').
+
+═══════════════════════════════════════
+כלל י — כללים קריטיים לעריכה
+═══════════════════════════════════════
+• אסור למחוק שום חידוש או רעיון מקורי של המחבר — גם אם הניסוח קשה.
+• ציטוט מספר אחר — כלשונו המדויק ללא שינוי אפילו מילה אחת.
+• מראי מקומות — שמור אותם כפי שהם. אל תמחק מ"מ קיים.
+• הערות שוליים — כאשר יש ציון הערה בטקסט (כגון [1] או ¹) שמור אותו במקומו המדויק. בסוף הטקסט הבא את כל ההערות לפי סדרן.
+• לפסוק או גמרא שמוזכרים בלי מ"מ — הוסף מ"מ מדויק. בדוק היטב שהוא נכון.
+• צורת הציון — תמיד בסוגריים עגולות:
+  תנ"ך: (שמות כ, ה) · (דברים ו, ד)
+  בבלי: (ברכות ב.) · (שבת קיח:)
+  ירושלמי: (שבת פ"א ה"א)
+  רמב"ם: (אישות פ"ב ה"א)
+  שו"ע: (או"ח סי' קפה ס"ב)
+  מדרש: (ב"ר א, א) · (תנחומא בראשית א)
+  זוהר: (ח"א לג.)
+• מיקום הציון: אם הפסוק מובא עם הקדמה כ"שנאמר" — הציון לפני הפסוק. אם הפסוק מובא לבד — הציון אחריו.
+• "וכתב הרשב"א" / "כתב רש"י" — לא "ואמר". על ספרים כתובים — לשון "כתב".
+• ר"ת — שני כללים פשוטים:
+  כלל א — שמות של אנשים (רבנים, מחברים, פוסקים) — לעולם אין לפתוח, גם אם אינם מפורסמים. רש"י, רשב"א, ריטב"א, רא"ש וכד' — נשארים כר"ת.
+  כלל ב — כל שאר הר"ת (מונחים, ביטויים, שמות ספרים, חלקי שו"ע) — פתח אותם, אלא אם הם שגורים כל כך שכולם מכירים אותם: או"ח · יו"ד · אה"ע · חו"מ · ב"י · שו"ע · עיי"ש · כנ"ל · הנ"ל · ז"ל · ע"כ · אע"פ · וכו' · וכיו"ב · דהיינו · ת"ח · א"י.
+• אין לשנות שם מחבר, שם ספר, שנת הוצאה, עיר הדפוס.
+
+═══════════════════════════════════════
+כלל יא — הפלט
+═══════════════════════════════════════
+החזר את הטקסט בלבד — ללא הסברים, ללא כותרות נוספות, ללא מרכאות עיטור, ללא כל הערה.
+${document.getElementById('nikud-pasuk')?.checked ? 'ניקוד פסוקים: כל פסוק מקרא המובא בטקסט — נקד אותו לפי הניקוד המסורתי המדויק כפי שמופיע בתנ"ך.' : ''}
+חובה מוחלטת: כל הטקסט — גוף הספר, כותרות, הסברים — יהיה בלשון הקודש הצחה בלבד.
+אין להשתמש בשום מילה עברית מודרנית. לשון הקודש אינה "עברית" — היא שפת התנ"ך, המשנה, הגמרא, הראשונים והאחרונים.
+בדוק כל מילה: האם היא מצויה בתנ"ך / משנה / גמרא / ראשונים? אם לא — אל תשתמש בה.
+
+${str ? 'עוצמת השכתוב: ' + str : ''}
+${document.getElementById('pasuk-nikud') && document.getElementById('pasuk-nikud').checked ? `כלל ניקוד פסוקים — נקד כל פסוק המובא בטקסט בניקוד מדויק לפי המסורה. אם אינך בטוח בניקוד — עדיף להשמיטו מאשר לנקד שלא נכון.` : ''}
+${nikud ? `כלל ניקוד — ניקוד מלא ומדויק:
+• שמות עצם לפי הדקדוק (קמץ, פתח, צרי וכד')
+• פעלים לפי הבניין והגזרה
+• מילות קישור: וְ, בְּ, לְ, כְּ, מִ
+• ה' — לא מנוקד
+• שמות קדושים — לפי המסורה
+• ניקוד מעורב — זהה את שפת כל מילה:
+  מילה עברית → נקד לפי כללי לשון הקודש (דקדוק עברי מסורתי)
+  מילה ארמית → נקד לפי כללי ארמית תורנית: פתח במקום קמץ בדרך כלל (אֲבָל לָא, לָא לא לֹא), שוא נע בתחילת מילה, כינויי גוף (הוּא→הוּ, היא→הִיא, של→דְּ, ב→בְּ), סיומות שם (אָ בסוף שם = ה-ידיעה הארמית), בניינים ארמיים (אִתְ, אַ) לפי מסורת הבבלי והזוהר
+  טקסט מעורב — הבן לבד לפי ההקשר איזו מילה ארמית ואיזו עברית` : ''}
+${fn ? 'הערות שוליים (סימון [1],[2]...): ציטוט/מקור — כלשונו ללא שינוי; הסבר — ערוך לנוסח תורני.' : ''}
+${headingInstr()}
+
+═══════════════════════════════════════
+כלל יא — מבנה וזרימת הטקסט
+═══════════════════════════════════════
+• ארגון החומר בצורה מסודרת — קושיות יחד, תירוצים יחד, מסקנות בפני עצמן.
+• תחילת כל קטע — ייפתח בקישור לקטע הקודם, כדי ללוות את הקורא.
+• כשיש מושג חדש הדורש ביאור — לבאר אותו בכמה משפטים לפני שממשיכים.
+• אין להשאיר קטעים ארוכים מדי — לקטע בכל מעבר קושיא/תירוץ/הוכחה.
+• שפה ברורה, זורמת, נעימה — כהגדת שיעור לפני ציבור. לא "תרגום מילולי".
+• כשדברי המקור ברורים אך חסרים השלמה — לשלב מילים לפניהם ואחריהם.
+• כשהדברים אינם מובנים — לסמן מקף [ - ] ואחריו לפרש.
+• אין לחזור על אותו רעיון פעמיים במילים שונות.
+
+═══════════════════════════════════════
+כלל יב — מילים שאין להשתמש בהן (עברית מודרנית)
+═══════════════════════════════════════
+אין להשתמש במילים אלו — במקומן יש להשתמש בלשון קודש:
+• "בעיה" → "קושי" / "קושיא"
+• "בשלב זה" → השמט
+• "בניגוד ל..." → "שלא כ..." / "להיפך מ..."
+• "בקשר ל..." → "בענין" / "הנוגע ל..."
+• "הגמרא מנסה לתרץ" → "הגמרא מתרצת"
+• "הגמרא עומדת על" → "הגמרא מקשה" / "הגמרא מבארת"
+• "התנא מתייחס" → "התנא מדבר בענין" / "התנא כותב על"
+• "למרות ש..." → "אף על פי ש..." / "אכן..."
+• "לעומת זאת" → "מאידך" / "ואילו"
+• "מסיקה הגמרא" → "מסקנת הגמרא" / "עולה מן הגמרא"
+• "מתבסס" → "יסודו ב..." / "נשען על"
+• "פריטים" → "דברים" / "ענינים"
+• "קטע" → "פסקה" / "ענין"
+• "רצף" → "המשך" / "זרימה"
+• "מתעורר קושי" → "יש להקשות" / "קשה לומר"
+• "יש לציין שברמב"ם מבואר..." → "כן כתב הרמב"ם..."
+• "ניגוד" / "שונה מ..." → "שלא כ..." / "בשונה"
+• "מיקום" → "מקום" / "מציאות"
+• "מעונין" → "רוצה" / "חפץ"
+• "מצגה" / "הציג" → "הביא" / "כתב"
+• "תשלום ממוני" → "תשלום ממון"
+• "דין מעניין" → "דין חשוב" / "דין נכבד"
+• "בהנחה ש..." → "אם נניח ש..." / "אם נאמר ש..."
+
+כללי כתיב נוספים:
+• "ענין", "קנין", "מנין" — עם יו"ד אחת בלבד
+• "קושיא", "סברא", "מסקנא", "גירסא" — עם אל"ף בסוף
+• "דרשה" — עם ה"א בסוף
+• "ודאי", "דווקא", "מאד" — כצורתם
+• מחבר בשם "רבינו" — לא "הרב" ולא "המחבר"
+
+═══════════════════════════════════════
+כלל יג — לשון עשירה (חילופים מומלצים)
+═══════════════════════════════════════
+• "אבל" / "אמנם" / "ואולם" / "מכל מקום" / "אך" / "אלא ש..."
+• "אחר כך" → "לאחר מכן" / "להלן" / "לאחר זמן"
+• "איך" → "כיצד"
+• "איפה" → "היכן"
+• "אם" → "אילו"
+• "אנחנו" → "אנו"
+• "אפשר" → "ניתן" / "יתכן"
+• "בגלל" → "מפני" / "משום" / "כיון" / "מחמת" / "הואיל" / "מאחר" / "שכן"
+• "בשביל" → "עבור" / "למען"
+• "הסבר" → "ביאור"
+• "חושב" → "סובר" / "סבר"
+• "חשוב" → "עיקרי" / "נכבד"
+• "כי" → "שהרי" / "לפי ש..."
+• "כנראה" → "מסתבר" / "קרוב לודאי"
+• "לא" (שלילה) → "אין"
+• "לכן" → "לפיכך" / "על כן"
+• "למה" → "מדוע" / "מפני מה"
+• "מדוע נאמר" (בסתירה) → "כיצד מיושבת סתירת הכתובים"
+• "מספיק" → "די"
+• "מסביר" → "מבאר"
+• "מפרש" → "מבאר"
+• "עכשיו" → "עתה"
+• "פה" → "כאן"
+• "רואים" → "מוכח" / "נראה"
+• "רק" → "אך" / "אלא"
+• "שם" → "שמה"
+• "זמן" → "עת"
+• "כמו" → "כפי" / "כשם"
+
+═══════════════════════════════════════
+כלל יד — כללי מכון תוצאות
+═══════════════════════════════════════
+ציטוט ארוך (מעל שורה-שתיים) — יפתח ב"וז"ל" ויסתיים ב"עכ"ל".
+ציטוט קצר — במרכאות בלבד, ללא וז"ל/עכ"ל.
+דבר צדדי שמקומו בסוגריים — יוכנס בסוגריים מרובעות [ ].
+כשהסוגריים המרובעות הם המשך למשפט — אין פסיק/נקודה לפניהן.
+כשהסוגריים המרובעות הן נושא עצמאי — נקודה לפניהן ונקודה בתוכן לפני הסגירה.
+נקודה בסוף כל הערה.
+הערה באה בסוף המשפט עליו היא נסובה — לא באמצעו.
+אין לשים שתי הפניות על מילה אחת — יש לאחדן להערה אחת.
+פסיק — בסוף משפט; נקודה — בסוף קטע שלם (קושיא שלמה / תירוץ שלם).
+לשון פסוק שעליה נסוב הקטע — מודגשת.
+ציטוטי חז"ל וספרים שעליהם נסוב הקטע — מודגשים.
+מראי מקומות רק בסוגריים עגולות () — ללא הוספת אותיות (כגון לא לכתוב "במדרש..").
+אם מביאים מקור בשם ספר אחר: (הו"ד בישמח משה...).
+
+═══════════════════════════════════════
+כלל טו — סגנון, היסטוריה ואחריות
+═══════════════════════════════════════
+• שמור על סגנון המחבר — הרוח של הטקסט תישאר כפי שהייתה גם אחרי העריכה. אין להכניס את סגנונך האישי.
+• אחידות — סגנון אחד מתחילת הספר עד סופו. אם קראתי שלושה פרקים — אזהה גם את שאר הפרקים.
+• אין לפרש דברי ראשון לפי הבנת המאוחר ממנו — יש להכיר מי המחבר ובאיזו תקופה חי.
+• מה שנכתב בספר קיים לדורות — אין לכתוב שום דבר שלילי על ספר, רב או אדם. הדברים נחקקים לדורי דורות.
+• מטרת המהדיר: להבין את כוונת המחבר — לא להשקיע את השקפת עולמו שלו בדברי המחבר.
+
+${customRules()}`;
+
+  if (S.mode === 'heb') {
+    const simple = document.getElementById('opt-heb-simple')?.checked;
+    const nikudHeb = document.getElementById('opt-nikud')?.checked;
+    return `אתה עורך עברית מקצועי מומחה. שכתב את הטקסט לעברית תקנית, בהירה ומלוטשת.
+${str}
+${simple ? '• משפטים קצרים וברורים, ללא סרבולים ולא מילים מיותרות.' : ''}
+${nikudHeb ? '• הוסף ניקוד חלקי למילים בעלות קריאה שאינה ברורה.' : ''}
+${quotes ? '• שמור על ציטוטים כלשונם המדויק.' : ''}
+${fn ? '• שפר גם את שפת הערות השוליים.' : ''}
+${headingInstr()}
+${customRules()}
+החזר טקסט בלבד, ללא הסברים.`;
+  }
+  if (S.mode === 'legal') {
+    const defs = document.getElementById('opt-legal-defs')?.checked;
+    const formal = document.getElementById('opt-legal-formal')?.checked;
+    const nikudLegal = document.getElementById('opt-nikud')?.checked;
+    return `אתה עורך דין ועורך לשון משפטי מומחה. נסח את הטקסט בלשון משפטית תקנית ומדויקת.
+${str}
+${formal ? '• השתמש בנוסח פורמלי: "הצדדים", "המוסכם", "בהתאם להוראות", "מבלי לגרוע מכלליות האמור".' : ''}
+${defs ? '• הגדר מונחים מרכזיים בפירוש.' : ''}
+${nikudLegal ? '• הוסף ניקוד לפי הצורך לבהירות.' : ''}
+${quotes ? '• שמור על ציטוטים מחוקים ופסיקה כלשונם.' : ''}
+${fn ? '• שפר שפת הערות שוליים, כולל הפניות לחוק.' : ''}
+${headingInstr()}
+${customRules()}
+החזר טקסט בלבד, ללא הסברים.`;
+  }
+  if (S.mode === 'eng') {
+    const active = document.getElementById('opt-eng-active')?.checked;
+    const concise = document.getElementById('opt-eng-concise')?.checked;
+    return `You are an expert professional English editor. Rewrite the text in clear, polished, professional English.
+${str}
+${active ? '• Prefer active voice over passive where natural.' : ''}
+${concise ? '• Eliminate redundancy. Keep sentences tight and purposeful.' : ''}
+${quotes ? '• Preserve all direct quotes verbatim.' : ''}
+${fn ? '• Improve the language of footnotes as well.' : ''}
+${headingInstr()}
+${customRules()}
+Return text only — no explanations, no commentary.`;
+  }
+}
+
+// ── API ──
+function toggleKey() { const i = document.getElementById('apikey'); i.type = i.type === 'password' ? 'text' : 'password'; }
+
+async function testApi() {
+  const key = document.getElementById('apikey').value.trim();
+  if (!key) { alert('נא להזין מפתח API'); return; }
+  setGst('wrk', '⚙ בודק...');
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 5, messages: [{ role: 'user', content: 'hi' }] })
+    });
+    if (r.ok) { setGst('rdy', '✓ מפתח תקין'); lg('ok', 'מפתח אומת'); }
+    else { const d = await r.json().catch(() => ({})); setGst('er', '✕ שגוי'); lg('er', d.error?.message || r.status); }
+  } catch(e) { setGst('er', '✕ רשת'); lg('er', e.message); }
+}
+
+function parseMarkdown(text) {
+  if (!text) return '';
+  return text
+    .split('\n')
+    .map(line => {
+      if (line.startsWith('### ')) return '<div style="text-align:center;font-weight:900;font-size:17px;margin:14px 0 6px;color:var(--ink)">' + line.slice(4) + '</div>';
+      if (line.startsWith('## '))  return '<div style="font-weight:800;font-size:16px;margin:10px 0 4px;color:var(--ink)">' + line.slice(3) + '</div>';
+      if (line.startsWith('# '))   return '<div style="text-align:center;font-weight:900;font-size:19px;margin:16px 0 8px;color:var(--ink);border-bottom:1px solid var(--border);padding-bottom:4px">' + line.slice(2) + '</div>';
+      return line
+        .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    })
+    .join('<br>');
+}
+
+async function callClaude(key, sys, text, model, onChunk) {
+  const isEng = S.mode === 'eng';
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'anthropic-beta': 'messages-2023-12-15'
+    },
+    body: JSON.stringify({
+      model, max_tokens: 8192, stream: true,
+      system: sys,
+      messages: [{ role: 'user', content: (isEng ? 'Rewrite:\n\n' : 'שכתב:\n\n') + text }]
+    })
+  });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error?.message || 'HTTP ' + r.status); }
+  
+  const reader = r.body.getReader();
+  const decoder = new TextDecoder();
+  let full = '';
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value);
+    const lines = chunk.split('\n');
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') break;
+      try {
+        const j = JSON.parse(data);
+        const delta = j?.delta?.text || '';
+        if (delta) {
+          full += delta;
+          if (onChunk) onChunk(full);
+        }
+      } catch(e) {}
+    }
+  }
+  return full.trim();
+}
+
+// ── PROCESSING ──
+async function processSingle() {
+  const key = document.getElementById('apikey').value.trim();
+  if (!key) { alert('נא להזין מפתח API'); return; }
+  if (!S.raw) { alert('נא להעלות קובץ תחילה'); return; }
+  S.processing = true; S.stop = false;
+  document.getElementById('btn-proc').disabled = true;
+  document.getElementById('btn-single').disabled = true;
+  document.getElementById('prog-section').style.display = 'block';
+  document.getElementById('pfill').style.width = '5%';
+  document.getElementById('logbox').innerHTML = '';
+  setGst('wrk', '⚙ מעבד...');
+  lg('in', `מסמך שלם בבת אחת · ${S.raw.length.toLocaleString()} תווים`);
+  // Use full raw text (all chapters combined)
+  const fullText = S.chapters.map(c => c.title !== 'המסמך כולו' ? c.title + '\n' + c.text : c.text).join('\n\n');
+  const model = 'claude-sonnet-4-20250514'; // Always Sonnet
+  const sys = buildPrompt();
+  try {
+    document.getElementById('pfill').style.width = '30%';
+    document.getElementById('ptxt').textContent = 'שולח למודל... (' + model.includes('opus') ? 'Opus' : 'Sonnet' + ')';
+    const result = await callClaude(key, sys, fullText, model, (partial) => {
+      const res = document.getElementById('res-text');
+      res.innerHTML = parseMarkdown(partial);
+      document.getElementById('rdot').classList.add('on');
+      document.getElementById('rcnt').textContent = partial.split(/\s+/).filter(w=>w).length.toLocaleString('he') + ' מילים';
+    });
+    document.getElementById('pfill').style.width = '100%';
+    document.getElementById('ptxt').textContent = '✓ הושלם!';
+    S.allResult = result; S.results = { 0: result };
+    const res = document.getElementById('res-text');
+    res.innerHTML = parseMarkdown(result); res.contentEditable = 'true';
+    document.getElementById('rdot').classList.add('on');
+    document.getElementById('rcnt').textContent = wc(result) + ' מילים';
+    document.getElementById('export-card').style.display = 'block';
+    setGst('dn', '✓ הושלם');
+    lg('ok', `✓ הושלם · ${result.length.toLocaleString()} תווים בפלט`);
+    document.getElementById('btn-editor').style.display = 'inline-flex';
+    document.getElementById('btn-track').style.display = 'inline-flex';
+    if (document.getElementById('strength').value === 'light') {
+      S_origForDiff = fullText;
+      const row = document.getElementById('diff-btn-row');
+      if (row) { row.style.display = 'flex'; }
+    }
+    showPreview();
+  } catch(e) {
+    lg('er', 'שגיאה: ' + e.message);
+    setGst('er', '✕ שגיאה');
+    // auto-retry with chunking
+    if (e.message.includes('too long') || e.message.includes('tokens')) {
+      lg('in', 'מסמך גדול מדי — עובר לעיבוד בקטעים');
+      S.processing = false;
+      document.getElementById('btn-proc').disabled = false;
+      document.getElementById('btn-single').disabled = false;
+      await startProcessing();
+      return;
+    }
+  }
+  S.processing = false;
+  document.getElementById('btn-proc').disabled = false;
+  document.getElementById('btn-single').disabled = false;
+}
+
+async function startProcessing() {
+  const key = document.getElementById('apikey').value.trim();
+  if (!key) { alert('נא להזין מפתח API'); return; }
+  if (!S.chapters.length) { alert('נא להעלות קובץ תחילה'); return; }
+
+  // Confirmation before sending
+  const totalWords = S.chapters.reduce((s, ch) => s + wc(ch.text||''), 0);
+  const nCh = S.chapters.length;
+  const modeNames = { ancient:'ספר ישן', light:'שיוף קל', medium:'שכתוב חלקי', full:'שכתוב מלא' };
+  const modeName = modeNames[document.getElementById('strength').value] || '';
+  if (!confirm('מוכן לשלוח לעריכה:\n\n📄 ' + nCh + ' פרקים · ' + totalWords.toLocaleString('he') + ' מילים\n✏️ סוג עריכה: ' + modeName + '\n\nניתן לעצור בכל עת.\nלהמשיך?')) return;
+
+  S.processing = true; S.stop = false; S.results = {}; S.allResult = '';
+  document.getElementById('btn-proc').disabled = true;
+  document.getElementById('btn-resume').style.display = 'none';
+  document.getElementById('prog-section').style.display = 'block';
+  document.getElementById('pfill').style.width = '0%';
+  document.getElementById('logbox').innerHTML = '';
+  setGst('wrk', '⚙ מעבד...');
+
+  if (S.flow === 'scan') { await runScan(key); return; }
+
+  const sys = buildPrompt();
+  const total = S.chapters.length;
+
+  for (let i = 0; i < total; i++) {
+    if (S.stop) { lg('er', `עצר בפרק ${i+1}`); break; }
+    const ch = S.chapters[i];
+    showCh(i);
+    chSt(i, 'ch-active', '⚙');
+    updProg(i, total, `פרק ${i+1}/${total} — ${ch.title}`);
+    lg('in', `[${i+1}/${total}] ${ch.title}`);
+    const model = 'claude-sonnet-4-20250514'; // Always Sonnet - reliable and fast
+
+    let out = null, tries = 0;
+    while (tries < 3 && out === null) {
+      try {
+        out = await callClaude(key, sys, ch.text || '', model, (partial) => {
+          const res = document.getElementById('res-text');
+          res.innerHTML = parseMarkdown(partial);
+          document.getElementById('rdot').classList.add('on');
+        });
+        if (!out || out.length < 5) throw new Error('תגובה ריקה');
+      } catch(e) {
+        tries++;
+        if (tries < 3) { lg('in', `  ← ניסיון ${tries}: ${e.message}`); await wait(2000 * tries); }
+        else { out = `[שגיאה בפרק ${i+1}: ${e.message}]`; chSt(i, 'ch-error', '✕'); lg('er', `  ✕ נכשל`); }
+      }
+    }
+
+    if (!out.startsWith('[שגיאה')) chSt(i, 'ch-done', '✓');
+    S.results[i] = out;
+    // Auto-save progress to localStorage
+    try { localStorage.setItem('et_sofer_progress', JSON.stringify({ results: S.results, chapters: S.chapters, curCh: i, mode: S.mode, ts: Date.now() })); } catch(e) {}
+
+    const res = document.getElementById('res-text');
+    res.innerHTML = parseMarkdown(out); res.contentEditable = 'true';
+    document.getElementById('rdot').classList.add('on');
+    document.getElementById('rcnt').textContent = wc(out) + ' מילים';
+
+    if (i % 3 === 2) {
+      try { localStorage.setItem('etsofer', JSON.stringify({ results: S.results, done: i+1, total, file: S.file, mode: S.mode, savedAt: new Date().toISOString() })); } catch(e) {}
+    }
+
+    if (S.flow === 'pause' && i < total - 1 && !S.stop) {
+      const act = await showPause(i, out);
+      if (act === 'stop') { S.stop = true; break; }
+    }
+
+    if (i < total - 1 && !S.stop) await wait(700);
+  }
+
+  S.allResult = Object.values(S.results).filter(Boolean).join('\n\n');
+  updProg(total, total, S.stop ? `עצר` : '✓ הושלם!');
+  setGst(S.stop ? 'wrk' : 'dn', S.stop ? '⏸ עצר' : '✓ הושלם');
+  if (!S.stop) localStorage.removeItem('etsofer');
+  if (S.stop) document.getElementById('btn-resume').style.display = 'inline-flex';
+  document.getElementById('export-card').style.display = 'block';
+  document.getElementById('btn-proc').disabled = false;
+  S.processing = false;
+  showPreview();
+  lg('ok', S.stop ? 'עצר' : `✓ הסתיים — ${Object.keys(S.results).length} פרקים`);
+  if (!S.stop) {
+    document.getElementById('btn-editor').style.display = 'inline-flex';
+    document.getElementById('btn-track').style.display = 'inline-flex';
+    if (document.getElementById('strength').value === 'light') {
+      const row = document.getElementById('diff-btn-row');
+      if (row) { row.style.display = 'flex'; }
+    }
+  }
+}
+
+async function runScan(key) {
+  const full = S.chapters.map(c => c.title + '\n' + c.text).join('\n\n').slice(0, 80000);
+  updProg(1, 2, 'סורק...');
+  try {
+    const r = await callClaude(key, buildPrompt(true), full, 'claude-sonnet-4-20250514', (partial) => {
+      const res = document.getElementById('res-text');
+      res.innerHTML = parseMarkdown(partial);
+    });
+    updProg(2, 2, 'דוח מוכן');
+    const res = document.getElementById('res-text');
+    res.textContent = 'דוח סריקה:\n\n' + r;
+    res.contentEditable = 'true';
+    document.getElementById('rdot').classList.add('on');
+    document.getElementById('export-card').style.display = 'block';
+    setGst('dn', '✓ סריקה הושלמה');
+    lg('ok', 'דוח סריקה מוכן');
+    showPreview();
+  } catch(e) { lg('er', 'שגיאה: ' + e.message); setGst('er', '✕'); }
+  document.getElementById('btn-proc').disabled = false;
+  S.processing = false;
+}
+
+function stopProc() { S.stop = true; lg('in', 'עוצר...'); }
+function resumeProc() { document.getElementById('btn-resume').style.display = 'none'; S.curCh = Object.keys(S.results).length; startProcessing(); }
+function enableManual() {
+  const ch = S.chapters[S.curCh];
+  if (!ch) return;
+  const res = document.getElementById('res-text');
+  res.innerHTML = ''; res.textContent = ch.text || '';
+  res.contentEditable = 'true'; res.focus();
+  document.getElementById('rdot').classList.add('on');
+  document.getElementById('export-card').style.display = 'block';
+  showPreview();
+}
+
+// ── PAUSE ──
+function showPause(i, text) {
+  return new Promise(resolve => {
+    S.pauseResolve = resolve;
+    document.getElementById('pd-title').textContent = 'פרק ' + (i+1) + ': ' + S.chapters[i].title;
+    document.getElementById('pd-prev').textContent = (text || '').slice(0, 400) + ((text||'').length > 400 ? '...' : '');
+    document.getElementById('pause-overlay').classList.add('show');
+  });
+}
+function pauseAct(a) {
+  document.getElementById('pause-overlay').classList.remove('show');
+  if (S.pauseResolve) { S.pauseResolve(a); S.pauseResolve = null; }
+}
+
+// ── EXPORT ──
+function getResult() {
+  if (Object.keys(S.results).length > 0) return S.chapters.map((_,i) => S.results[i]||'').filter(Boolean).join('\n\n');
+  // Get text from innerHTML (strip tags for Word export)
+  const el = document.getElementById('res-text');
+  return el.innerText || S.allResult || '';
+}
+
+async function exportWithTrack() {
+  const orig = S.chapters?.map(ch => ch.text || '').filter(Boolean).join('\n\n') || S_origForDiff || '';
+  const edited = getResult();
+  if (!edited) { alert('אין חומר לייצוא'); return; }
+  
+  // Always export clean edited file
+  await exportWordWithContent(edited, 'ערוך.docx');
+  
+  // If we have original - also export it for comparison
+  if (orig && orig.trim() !== edited.trim()) {
+    await new Promise(r => setTimeout(r, 600));
+    await exportWordWithContent(orig, 'מקור-להשוואה.docx');
+    setTimeout(() => {
+      alert('יוצאו שני קבצים:\n\n1. ערוך.docx — הגרסה הערוכה\n2. מקור-להשוואה.docx — המקור\n\nלהצגת עקוב אחרי שינויים ב-Word:\nפתח ערוך.docx ← סקירה ← השוואה ← השוואת מסמכים ← בחר "מקור-להשוואה" כמסמך המקורי');
+    }, 1200);
+  }
+}
+
+async function exportWordWithContent(text, filename) {
+  const settings = collectSettings();
+  await buildAndSaveDocx(text, settings, filename);
+}
+
+function collectSettings() {
+  return {
+    font: document.getElementById('dfont')?.value || 'FrankRuehl',
+    fsize: parseInt(document.getElementById('fsize')?.value) || 16,
+    lspace: parseFloat(document.getElementById('lspace')?.value) || 1.8,
+    pgsize: document.getElementById('pgsize')?.value || 'A4',
+    title: document.getElementById('doctitle')?.value?.trim() || '',
+    fname: document.getElementById('expname')?.value?.trim() || 'עט-סופר-עריכה',
+    rtl: S.mode !== 'eng',
+  };
+}
+
+async function exportWord(overrideName) {
+  const text = getResult().trim();
+  if (!text) { alert('אין טקסט לייצוא'); return; }
+  const fs = parseInt(document.getElementById('fsize').value);
+  const ls = parseFloat(document.getElementById('lspace').value);
+  const pg = document.getElementById('pgsize').value;
+  const title = document.getElementById('doctitle').value.trim();
+  const fname = (document.getElementById('expname').value.trim() || 'עט-סופר') + '.docx';
+  const rtl = S.mode !== 'eng';
+  const font = 'Narkisim';
+  const trackChanges = document.getElementById('exp-track')?.value === 'track';
+  const addNikud = document.getElementById('exp-pasuk-nk')?.value === 'nikud';
+  // If nikud requested and not already done - add note
+  if (addNikud) {
+    const note = document.getElementById('ep-nikud-note');
+    if (note) note.style.display = 'block';
+  }
+  try {
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, LineRuleType, convertMillimetersToTwip } = docx;
+    const paras = [];
+    if (title) paras.push(new Paragraph({ children: [new TextRun({ text: title, font, size: (fs+10)*2, bold: true })], alignment: AlignmentType.CENTER, spacing: { before: 0, after: 500 }, bidirectional: rtl }));
+    const fnSep = '---הערות שוליים---';
+    let body = text, fnTxt = '';
+    const fnIdx = text.indexOf(fnSep);
+    if (fnIdx > -1) { body = text.slice(0, fnIdx).trim(); fnTxt = text.slice(fnIdx + fnSep.length).trim(); }
+    for (const line of body.split('\n')) {
+      const t = line.trim();
+      if (!t) { paras.push(new Paragraph({ children: [], spacing: { before: 0, after: 100 } })); continue; }
+      // Handle headings
+      if (t.startsWith('### ') || t.startsWith('## ') || t.startsWith('# ')) {
+        const level = t.startsWith('# ') && !t.startsWith('## ') ? 1 : t.startsWith('## ') && !t.startsWith('### ') ? 2 : 3;
+        const htxt = t.replace(/^#+\s/, '');
+        const hsize = [32, 28, 24][level-1];
+        paras.push(new Paragraph({ children: [new TextRun({ text: htxt, font, size: hsize, bold: true })], alignment: AlignmentType.CENTER, bidirectional: true, spacing: { before: 200, after: 100 } }));
+        continue;
+      }
+      const isHeb = /[א-ת]/.test(t);
+      const paraRtl = rtl || isHeb;
+      const paraChildren = [new TextRun({ text: t, font: paraRtl ? font : 'Georgia', size: fs*2 })];
+      paras.push(new Paragraph({
+        children: paraChildren,
+        alignment: paraRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        bidirectional: paraRtl,
+        spacing: { before: 0, after: 100, line: Math.round(ls*240), lineRule: LineRuleType.AUTO }
+      }));
+    }
+    if (fnTxt) {
+      paras.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { before: 400, after: 0 }, border: { top: { style: 'single', size: 6, color: '8B6210' } } }));
+      paras.push(new Paragraph({ children: [new TextRun({ text: 'הערות שוליים', font, size: (fs+2)*2, bold: true })], alignment: AlignmentType.RIGHT, bidirectional: true, spacing: { before: 100, after: 120 } }));
+      for (const line of fnTxt.split('\n')) {
+        const t = line.trim();
+        if (!t) continue;
+        paras.push(new Paragraph({ children: [new TextRun({ text: t, font, size: (fs-2)*2 })], alignment: AlignmentType.RIGHT, bidirectional: true, spacing: { before: 0, after: 80, line: Math.round(1.5*240), lineRule: LineRuleType.AUTO } }));
+      }
+    }
+    // Add nikud note if requested
+    if (addNikud) {
+      paras.push(new Paragraph({ children: [new TextRun({ text: '* הפסוקים מנוקדים על ידי מערכת AI — יש לבדוק מול מהדורה מנוקדת', font, size: 18, color: '888888', italics: true })], alignment: AlignmentType.RIGHT, bidirectional: true, spacing: { before: 300, after: 0 } }));
+    }
+    const pw = pg === 'A4' ? 11906 : 12240, ph = pg === 'A4' ? 16838 : 15840;
+    const m = convertMillimetersToTwip(25);
+    // Build document settings
+    const docSettings = {};
+    if (trackChanges) {
+      docSettings.trackChanges = true;
+    }
+    const doc2 = new Document({
+      ...docSettings,
+      sections: [{ properties: { page: { size: { width: pw, height: ph }, margin: { top: m, right: m, bottom: m, left: m } } }, children: paras }]
+    });
+    const blob = await Packer.toBlob(doc2);
+    saveAs(blob, overrideName || fname);
+    lg('ok', 'ייצוא הושלם: ' + fname + (trackChanges ? ' (עם עקוב אחרי שינויים)' : ''));
+    setGst('dn', '✓ יוצא!');
+  } catch(e) { lg('er', 'שגיאה: ' + e.message); alert('שגיאה: ' + e.message); }
+}
+
+function showPreview() {
+  const text = getResult().trim();
+  const w = document.getElementById('epwrap'), p = document.getElementById('eprev');
+  if (!text) { w.style.display = 'none'; return; }
+  const stripped = text.replace(/<[^>]+>/g, '').replace(/<br>/g, '\n');
+  p.innerHTML = parseMarkdown(stripped.split('\n').slice(0, 10).join('\n')) + (stripped.split('\n').length > 10 ? '\n...' : '');
+  p.style.fontSize = document.getElementById('fsize').value + 'px';
+  p.style.lineHeight = document.getElementById('lspace').value;
+  w.style.display = 'block';
+}
+
+// ── HELPERS ──
+function updProg(done, total, txt) {
+  const pct = total > 0 ? Math.round(done/total*100) : 0;
+  document.getElementById('pfill').style.width = pct + '%';
+  document.getElementById('ptxt').textContent = txt + ' (' + pct + '%)';
+  document.getElementById('bkstat').textContent = done + '/' + total + ' · ' + pct + '%';
+}
+function lg(type, msg) {
+  const el = document.getElementById('logbox');
+  const d = document.createElement('div'); d.className = type;
+  const t = new Date().toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  d.textContent = '[' + t + '] ' + msg;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+function setGst(cls, label) { const e = document.getElementById('gstat'); e.className = 'stat stat-' + cls; e.textContent = label; }
+function wc(t) { return (t||'').trim().split(/\s+/).filter(w=>w).length.toLocaleString('he'); }
+function fmtB(b) { return b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(2)+' MB'; }
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── DIFF ──
+let S_diffMode = false;
+let S_origForDiff = '';
+
+function toggleDiff() {
+  S_diffMode = !S_diffMode;
+  const btn = document.getElementById('btn-diff');
+  const res = document.getElementById('res-text');
+  const legend = document.getElementById('diff-legend');
+  if (S_diffMode) {
+    btn.textContent = '📄 הסתר שינויים';
+    btn.style.background = 'rgba(200,151,42,0.15)';
+    if (legend) legend.style.display = 'flex';
+    const orig = S_chapters[S.curCh]?.text || S_origForDiff || '';
+    const edited = res.innerText || '';
+    res.innerHTML = '<div class="diff-wrap">' + computeDiff(orig, edited) + '</div>';
+    res.contentEditable = 'false';
+  } else {
+    btn.textContent = '🔍 הצג שינויים';
+    btn.style.background = '';
+    if (legend) legend.style.display = 'none';
+    const result = S.results[S.curCh] || '';
+    res.innerHTML = parseMarkdown(result);
+    res.contentEditable = 'true';
+  }
+}
+
+function computeDiff(orig, edited) {
+  // Word-level diff
+  const origWords = orig.split(/(\s+)/);
+  const editWords = edited.split(/(\s+)/);
+  const dp = [];
+  for (let i = 0; i <= origWords.length; i++) {
+    dp[i] = [];
+    for (let j = 0; j <= editWords.length; j++) {
+      if (i === 0) dp[i][j] = j;
+      else if (j === 0) dp[i][j] = i;
+      else if (origWords[i-1] === editWords[j-1]) dp[i][j] = dp[i-1][j-1];
+      else dp[i][j] = 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  // Backtrack
+  let i = origWords.length, j = editWords.length;
+  const ops = [];
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && origWords[i-1] === editWords[j-1]) {
+      ops.unshift({ type: 'eq', val: origWords[i-1] }); i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] <= dp[i-1][j])) {
+      ops.unshift({ type: 'ins', val: editWords[j-1] }); j--;
+    } else {
+      ops.unshift({ type: 'del', val: origWords[i-1] }); i--;
+    }
+  }
+  return ops.map(op => {
+    const v = op.val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (op.type === 'eq') return v;
+    if (op.type === 'ins') return '<span class="diff-ins">' + v + '</span>';
+    return '<span class="diff-del">' + v + '</span>';
+  }).join('');
+}
+
+// ══ FULLSCREEN EDITOR ══
+let findMatches = [], findIdx = 0;
+
+function openFullEditor() {
+  const res = document.getElementById('res-text');
+  const body = document.getElementById('editor-body');
+  body.innerHTML = res.innerHTML || res.textContent || '';
+  document.getElementById('editor-full').classList.add('open');
+  body.focus();
+  updateEdStatus();
+  // Keyboard shortcuts
+  body.onkeydown = edKeyDown;
+}
+
+function closeFullEditor() {
+  const body = document.getElementById('editor-body');
+  const res = document.getElementById('res-text');
+  res.innerHTML = body.innerHTML;
+  document.getElementById('editor-full').classList.remove('open');
+  // Update results
+  const txt = body.innerText || '';
+  const curCh = S.curCh;
+  if (curCh !== undefined) S.results[curCh] = txt;
+  S.allResult = txt;
+  document.getElementById('rcnt').textContent = wc(txt) + ' מילים';
+  showPreview();
+}
+
+function edCmd(cmd) {
+  document.getElementById('editor-body').focus();
+  document.execCommand(cmd, false, null);
+}
+
+function edUndo() { document.execCommand('undo', false, null); }
+function edRedo() { document.execCommand('redo', false, null); }
+function edSelectAll() {
+  const body = document.getElementById('editor-body');
+  body.focus();
+  const range = document.createRange();
+  range.selectNodeContents(body);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+function edCopyAll() {
+  edSelectAll();
+  document.execCommand('copy');
+  // Show feedback
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✓ הועתק!';
+  setTimeout(() => btn.textContent = orig, 1500);
+}
+
+function edKeyDown(e) {
+  if (e.key === 'Escape') { closeFullEditor(); e.preventDefault(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'f') { toggleFind(); e.preventDefault(); }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'h') { toggleFind(); e.preventDefault(); }
+}
+
+function toggleFind() {
+  const bar = document.getElementById('find-bar');
+  const isOpen = bar.classList.toggle('show');
+  document.getElementById('tb-find-btn').classList.toggle('active', isOpen);
+  if (isOpen) {
+    document.getElementById('find-input').focus();
+    document.getElementById('find-input').select();
+  } else {
+    clearHighlights();
+    document.getElementById('editor-body').focus();
+  }
+}
+
+function doFind() {
+  clearHighlights();
+  findMatches = []; findIdx = 0;
+  const q = document.getElementById('find-input').value;
+  if (!q) { document.getElementById('find-info').textContent = ''; return; }
+  const body = document.getElementById('editor-body');
+  const html = body.innerHTML;
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(escaped, 'gi');
+  let match, idx = 0;
+  const newHtml = html.replace(re, (m) => {
+    const cls = idx === 0 ? 'find-cur' : 'find-hi';
+    idx++;
+    return '<mark class="' + cls + '" data-fi="' + (idx-1) + '">' + m + '</mark>';
+  });
+  body.innerHTML = newHtml;
+  findMatches = Array.from(body.querySelectorAll('mark[data-fi]'));
+  document.getElementById('find-info').textContent = findMatches.length ? (1 + '/' + findMatches.length) : 'לא נמצא';
+  if (findMatches[0]) findMatches[0].scrollIntoView({ block: 'center' });
+}
+
+function findNext(dir) {
+  if (!findMatches.length) return;
+  if (findMatches[findIdx]) findMatches[findIdx].className = 'find-hi';
+  findIdx = (findIdx + dir + findMatches.length) % findMatches.length;
+  if (findMatches[findIdx]) {
+    findMatches[findIdx].className = 'find-cur';
+    findMatches[findIdx].scrollIntoView({ block: 'center' });
+  }
+  document.getElementById('find-info').textContent = (findIdx+1) + '/' + findMatches.length;
+}
+
+function findKey(e) {
+  if (e.key === 'Enter') { e.shiftKey ? findNext(-1) : findNext(1); e.preventDefault(); }
+  if (e.key === 'Escape') toggleFind();
+}
+
+function clearHighlights() {
+  const body = document.getElementById('editor-body');
+  body.querySelectorAll('mark.find-hi, mark.find-cur').forEach(m => {
+    m.replaceWith(document.createTextNode(m.textContent));
+  });
+  body.normalize();
+}
+
+function doReplace(onlyFirst) {
+  const q = document.getElementById('find-input').value;
+  const rep = document.getElementById('rep-input').value;
+  if (!q) return;
+  const body = document.getElementById('editor-body');
+  const txt = body.innerText;
+  if (onlyFirst) {
+    const idx = txt.indexOf(q);
+    if (idx < 0) return;
+    // Use execCommand for undo support
+    body.focus();
+    const newTxt = txt.slice(0, idx) + rep + txt.slice(idx + q.length);
+    body.innerText = newTxt;
+  } else {
+    // Count before
+    doFind();
+    const count = findMatches.length;
+    clearHighlights();
+    body.innerText = body.innerText.split(q).join(rep);
+    document.getElementById('find-info').textContent = count + ' הוחלפו';
+  }
+  updateEdStatus();
+}
+
+function doReplaceAll() { doReplace(false); }
+
+// ══ 3-PANE TRACK VIEWER ══
+let tvSync = true;
+let tvScrolling = false;
+let tvResizing = null;
+
+function openTrackViewer() {
+  const orig = S.chapters?.map(ch => ch.text||'').filter(Boolean).join('\n\n') || S_origForDiff || '';
+  const edited = getResult();
+  if (!orig && !edited) { alert('אין חומר להשוואה'); return; }
+
+  // Fill panes
+  document.getElementById('tv-orig-body').innerHTML = parseMarkdown(orig || '(אין מקור)');
+  document.getElementById('tv-edit-body').innerHTML = parseMarkdown(edited || '(אין עריכה)');
+
+  // Fill track changes pane
+  const diffHtml = computeDiff(orig, edited);
+  const insCount = (diffHtml.match(/diff-ins/g)||[]).length;
+  const delCount = (diffHtml.match(/diff-del/g)||[]).length;
+  document.getElementById('tv-track-body').innerHTML =
+    '<div class="diff-wrap" style="padding:0">' + diffHtml + '</div>';
+  document.getElementById('tv-change-count').textContent =
+    insCount + ' תוספות · ' + delCount + ' מחיקות';
+  document.getElementById('tv-stats').textContent =
+    'סה"כ שינויים: ' + (insCount + delCount);
+
+  document.getElementById('track-viewer').classList.add('open');
+}
+
+function closeTrackViewer() {
+  document.getElementById('track-viewer').classList.remove('open');
+}
+
+function toggleSync() {
+  tvSync = !tvSync;
+  const btn = document.getElementById('tv-sync-btn');
+  const dot = document.getElementById('tv-sync-dot');
+  btn.style.background = tvSync ? 'rgba(76,175,80,0.15)' : 'rgba(200,151,42,0.08)';
+  btn.style.borderColor = tvSync ? 'rgba(76,175,80,0.4)' : 'rgba(200,151,42,0.3)';
+  btn.textContent = tvSync ? '🔗 גלילה מסונכרנת' : '🔓 גלילה חופשית';
+  dot.style.background = tvSync ? '#4caf50' : '#888';
+}
+
+function syncScroll(source) {
+  if (!tvSync || tvScrolling) return;
+  tvScrolling = true;
+  const panes = {
+    track: document.getElementById('tv-track-body'),
+    orig: document.getElementById('tv-orig-body'),
+    edit: document.getElementById('tv-edit-body')
+  };
+  const src = panes[source];
+  const ratio = src.scrollTop / Math.max(1, src.scrollHeight - src.clientHeight);
+  Object.entries(panes).forEach(([key, el]) => {
+    if (key !== source) {
+      el.scrollTop = ratio * Math.max(0, el.scrollHeight - el.clientHeight);
+    }
+  });
+  setTimeout(() => tvScrolling = false, 50);
+}
+
+function resetPaneSizes() {
+  document.getElementById('tvp-track').style.flex = '3';
+  document.getElementById('tvp-orig').style.flex = '1';
+  document.getElementById('tvp-edit').style.flex = '1';
+}
+
+function startResize(e, resizerId) {
+  e.preventDefault();
+  const panes = document.getElementById('tv-panes');
+  const allPanes = Array.from(panes.querySelectorAll('.tv-pane'));
+  const resizerEl = document.getElementById(resizerId);
+  const resizerIdx = Array.from(panes.children).indexOf(resizerEl);
+  // Left pane = previous sibling, right pane = next sibling
+  const leftPane = panes.children[resizerIdx - 1];
+  const rightPane = panes.children[resizerIdx + 1];
+  const startX = e.clientX;
+  const startLeftFlex = parseFloat(leftPane.style.flex) || 1;
+  const startRightFlex = parseFloat(rightPane.style.flex) || 1;
+  const totalFlex = startLeftFlex + startRightFlex;
+  const totalWidth = leftPane.offsetWidth + rightPane.offsetWidth;
+
+  function onMove(ev) {
+    const dx = ev.clientX - startX;
+    const leftRatio = Math.max(0.15, Math.min(0.85, (leftPane.offsetWidth + dx) / Math.max(1, totalWidth)));
+    leftPane.style.flex = String(Math.round(leftRatio * totalFlex * 10) / 10);
+    rightPane.style.flex = String(Math.round((1 - leftRatio) * totalFlex * 10) / 10);
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function toggleEdDiff() {
+  const body = document.getElementById('editor-body');
+  const btn = document.getElementById('tb-diff-btn');
+  const orig = S_origForDiff || (S_chapters && S_chapters[S.curCh]?.text) || '';
+  if (!orig) { alert('אין טקסט מקורי להשוואה'); return; }
+  if (btn.classList.toggle('active')) {
+    btn.textContent = '📄 הסתר שינויים';
+    const edited = body.innerText || '';
+    body.innerHTML = '<div class="diff-wrap" style="padding:0">' + computeDiff(orig, edited) + '</div>';
+    body.contentEditable = 'false';
+  } else {
+    btn.textContent = '🔍 הצג שינויים';
+    body.innerHTML = parseMarkdown(S.results[S.curCh] || S.allResult || '');
+    body.contentEditable = 'true';
+  }
+}
+
+function updateEdStatus() {
+  const body = document.getElementById('editor-body');
+  const txt = body.innerText || '';
+  document.getElementById('ed-wordcount').textContent = wc(txt) + ' מילים';
+}
+
+function saveProgress() {
+  if (!S.results || Object.keys(S.results).length === 0) return;
+  try {
+    localStorage.setItem('et_sofer_progress', JSON.stringify({
+      results: S.results,
+      chapters: S.chapters,
+      curCh: S.curCh,
+      mode: S.mode,
+      ts: Date.now()
+    }));
+  } catch(e) {}
+}
+
+function loadProgress() {
+  try {
+    const saved = localStorage.getItem('et_sofer_progress');
+    if (!saved) return false;
+    const data = JSON.parse(saved);
+    const age = (Date.now() - data.ts) / 1000 / 60; // minutes
+    if (age > 480) { localStorage.removeItem('et_sofer_progress'); return false; } // 8 hours
+    const done = Object.keys(data.results).length;
+    const total = data.chapters?.length || 0;
+    if (!confirm('נמצאה עריכה שמורה: ' + done + '/' + total + ' פרקים הושלמו (לפני ' + Math.round(age) + ' דקות).\nלהמשיך ממקום שהופסקה?')) return false;
+    S.results = data.results;
+    S.chapters = data.chapters;
+    S.curCh = data.curCh || done;
+    S.mode = data.mode;
+    showPreview();
+    document.getElementById('export-card').style.display = 'block';
+    document.getElementById('btn-editor').style.display = 'inline-flex';
+    document.getElementById('btn-track').style.display = 'inline-flex';
+    return true;
+  } catch(e) { return false; }
+}
+
+// Auto-save every time a chapter finishes
+function onChapterDone(idx, result) {
+  S.results[idx] = result;
+  saveProgress();
+}
+
+// ══ LANDING ══
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  const btn = document.getElementById('btn-' + id);
+  const open = el.style.display === 'none' || el.style.display === '';
+  el.style.display = open ? 'block' : 'none';
+  if (btn) btn.style.fontWeight = open ? '800' : '700';
+  if (btn) btn.textContent = btn.textContent.replace(/[▾▸]/, open ? '▾' : '▸');
+}
+
+function enterMode(mode) {
+  document.getElementById('landing').classList.add('gone');
+  // Set mode tab
+  setMode(mode);
+}
+
+function showInstructions() {
+  alert('הוראות שימוש:\n\n1. בחר סוג עריכה\n2. העלה קובץ Word (.docx)\n3. הגדר את אפשרויות העריכה\n4. לחץ "התחל עריכה"\n5. סקור, ערוך וייצא\n\nטיפ: הוסף @@ לפני כל מאמר בWord לפיצול מדויק');
+}
+
+function showPricing() {
+  alert('תמחור:\n\nשיוף קל — 0.05 ₪ לעמוד\nשכתוב חלקי — 0.10 ₪ לעמוד\nשכתוב מלא — 0.20 ₪ לעמוד\n\nבקרוב: מערכת תשלום מלאה');
+}
+
+function resetAll() {
+  if (S.processing && !confirm('עיבוד בתהליך. לאפס?')) return;
+  S.stop = true;
+  clearFile();
+  localStorage.removeItem('etsofer');
+  setGst('idle', '⬤ ממתין');
+}
+
+// Autosave restore
+window.addEventListener('load', () => setTimeout(() => {
+  try {
+    const sv = localStorage.getItem('etsofer');
+    if (!sv) return;
+    const d = JSON.parse(sv);
+    if (!confirm(`נמצאה שמירה מ-${new Date(d.savedAt).toLocaleString('he-IL')}\n${d.done}/${d.total} פרקים\nלטעון?`)) return;
+    S.results = d.results; S.allResult = Object.values(d.results).filter(Boolean).join('\n\n');
+    setMode(d.mode || 'torah');
+    document.getElementById('res-text').textContent = S.allResult;
+    document.getElementById('res-text').contentEditable = 'true';
+    document.getElementById('rdot').classList.add('on');
+    document.getElementById('rcnt').textContent = wc(S.allResult) + ' מילים';
+    ['flow-card','settings-card','process-card','export-card'].forEach(id => document.getElementById(id).style.display = 'block');
+    document.getElementById('btn-resume').style.display = 'inline-flex';
+    document.getElementById('prog-section').style.display = 'block';
+    setGst('rdy', `✓ שוחזר ${d.done}/${d.total}`);
+    showPreview();
+  } catch(e) {}
+}, 500));
+</script>
+</body>
+</html>
