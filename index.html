@@ -439,7 +439,10 @@ body {
   font-family: var(--F); font-size: 15px; line-height: 2;
   direction: rtl; text-align: right; white-space: pre-wrap;
   word-break: break-word; scroll-behavior: smooth;
+  background: #0D0400; color: var(--cream);
 }
+.tv-pane-body .diff-ins { background: rgba(76,175,80,0.25); color: #90ee90; border-radius: 2px; padding: 0 2px; }
+.tv-pane-body .diff-del { background: rgba(180,30,30,0.25); color: #ff9090; text-decoration: line-through; border-radius: 2px; padding: 0 2px; }
 .tv-resizer {
   width: 5px; background: rgba(200,151,42,0.15); cursor: col-resize;
   flex-shrink: 0; transition: background 0.2s;
@@ -1119,6 +1122,7 @@ async function handleFile(file) {
       }
     } catch(e) {}
   }
+  S_origForDiff = S.raw;
   S.chapters = detectCh(S.raw);
     renderCh();
     document.getElementById('chapter-section').style.display = 'block';
@@ -2145,7 +2149,13 @@ async function exportWord(overrideName) {
     }
     const doc2 = new Document({
       ...docSettings,
-      sections: [{ properties: { page: { size: { width: pw, height: ph }, margin: { top: m, right: m, bottom: m, left: m } } }, children: paras }]
+      sections: [{
+        properties: {
+          page: { size: { width: pw, height: ph }, margin: { top: m, right: m, bottom: m, left: m } },
+          bidi: true
+        },
+        children: paras
+      }]
     });
     const blob = await Packer.toBlob(doc2);
     saveAs(blob, overrideName || fname);
@@ -2212,9 +2222,10 @@ function toggleDiff() {
 }
 
 function computeDiff(orig, edited) {
-  // Word-level diff
-  const origWords = orig.split(/(\s+)/);
-  const editWords = edited.split(/(\s+)/);
+  // Sentence/chunk-level diff for cleaner display
+  const splitChunks = t => t.match(/[^.!?\n]+[.!?\n]?/g) || [t];
+  const origWords = orig.split(/\s+/).filter(w=>w);
+  const editWords = edited.split(/\s+/).filter(w=>w);
   const dp = [];
   for (let i = 0; i <= origWords.length; i++) {
     dp[i] = [];
@@ -2395,24 +2406,35 @@ let tvScrolling = false;
 let tvResizing = null;
 
 function openTrackViewer() {
-  const orig = S.chapters?.map(ch => ch.text||'').filter(Boolean).join('\n\n') || S_origForDiff || '';
+  const orig = S_origForDiff ||
+    (S.chapters?.map(ch => ch.text||'').filter(Boolean).join('\n\n')) || '';
   const edited = getResult();
-  if (!orig && !edited) { alert('אין חומר להשוואה'); return; }
+  if (!edited) { alert('יש לבצע עריכה תחילה'); return; }
 
-  // Fill panes
-  document.getElementById('tv-orig-body').innerHTML = parseMarkdown(orig || '(אין מקור)');
-  document.getElementById('tv-edit-body').innerHTML = parseMarkdown(edited || '(אין עריכה)');
+  // Fill orig pane
+  const origEl = document.getElementById('tv-orig-body');
+  origEl.innerHTML = orig ? parseMarkdown(orig) : '<span style="opacity:0.4">אין מקור זמין</span>';
+
+  // Fill edited pane
+  const editEl = document.getElementById('tv-edit-body');
+  editEl.innerHTML = parseMarkdown(edited);
 
   // Fill track changes pane
-  const diffHtml = computeDiff(orig, edited);
-  const insCount = (diffHtml.match(/diff-ins/g)||[]).length;
-  const delCount = (diffHtml.match(/diff-del/g)||[]).length;
-  document.getElementById('tv-track-body').innerHTML =
-    '<div class="diff-wrap" style="padding:0">' + diffHtml + '</div>';
-  document.getElementById('tv-change-count').textContent =
-    insCount + ' תוספות · ' + delCount + ' מחיקות';
-  document.getElementById('tv-stats').textContent =
-    'סה"כ שינויים: ' + (insCount + delCount);
+  if (orig) {
+    const diffHtml = computeDiff(orig, edited);
+    const insCount = (diffHtml.match(/class="diff-ins"/g)||[]).length;
+    const delCount = (diffHtml.match(/class="diff-del"/g)||[]).length;
+    document.getElementById('tv-track-body').innerHTML =
+      '<div style="padding:0;direction:rtl;text-align:right">' + diffHtml + '</div>';
+    document.getElementById('tv-change-count').textContent =
+      insCount + ' תוספות · ' + delCount + ' מחיקות';
+    document.getElementById('tv-stats').textContent =
+      'שינויים: ' + (insCount + delCount);
+  } else {
+    document.getElementById('tv-track-body').innerHTML =
+      '<div style="padding:20px;opacity:0.5;direction:rtl">אין מקור להשוואה — מוצג הטקסט הערוך בלבד</div>' +
+      parseMarkdown(edited);
+  }
 
   document.getElementById('track-viewer').classList.add('open');
 }
