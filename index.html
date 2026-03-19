@@ -889,7 +889,7 @@ mark.find-cur { background: rgba(255,130,0,0.7); border-radius: 2px; }
             <div class="dot" id="rdot"></div>
           </div>
         </div>
-        <div class="text-area" id="res-text" contenteditable="false" style="direction:rtl;text-align:right">
+        <div class="text-area" id="res-text" contenteditable="false" style="direction:rtl;text-align:right" data-default-dir="rtl">
           <div class="empty"><div class="empty-icon">✨</div><span>כאן יופיע הטקסט המעובד</span></div>
         </div>
         <div id="diff-btn-row" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap">
@@ -1320,6 +1320,15 @@ function setMode(m) {
   // Nikud label per mode
   const nikSub = document.getElementById('nikud-sub');
   if (nikSub) nikSub.textContent = m === 'torah' ? 'ניקוד מלא לפי כללי הדקדוק' : m === 'eng' ? 'N/A' : 'ניקוד לפי הצורך';
+  // RTL for all modes except English
+  const resEl = document.getElementById('res-text');
+  if (resEl) {
+    resEl.style.direction = m === 'eng' ? 'ltr' : 'rtl';
+    resEl.style.textAlign = m === 'eng' ? 'left' : 'right';
+  }
+  // Show/hide Torah-specific options
+  const torahOnly = document.querySelectorAll('.torah-only');
+  torahOnly.forEach(el => el.style.display = m === 'torah' ? '' : 'none');
   // Update pasuk nikud option visibility
   const pnRow = document.getElementById('pasuk-nikud-row');
   if (pnRow) pnRow.style.display = (m === 'torah' || m === 'heb') ? 'flex' : 'none';
@@ -1447,10 +1456,23 @@ function customRules() {
 function buildPrompt(scan = false) {
   const strengthVal = document.getElementById('strength').value;
   const str = {
-    ancient: 'מצב ספר ישן: אסור לשנות ולו מילה אחת מגוף הספר. מותר רק: א) הוספת פיסוק ונקודות. ב) קיטוע לקטעים. ג) הוספת מראי מקומות לפסוקים ומאמרי חז"ל. ד) פתיחת ר"ת שאינם מקובלים. אין לשנות שום מילה, אין להוסיף מילים, אין למחוק מילים.',
-    light: 'שיוף קל: שייף את הלשון שתהיה מקצועית, קריאה ונעימה. ככל הניתן — השאר את מילות המחבר כפי שהן ורק שייף אותן. אין לשכתב משפטים מחדש במילים אחרות לחלוטין. אין למחוק. אין להוסיף תוכן. ציטוטים ומ"מ — כלשונם.',
-    medium: 'שכתוב חלקי: שכתב חלקי לניסוח יפה יותר. שמור על כל הרעיונות והחידושים. אל תמחק שום חידוש. ציטוטים — כלשונם בדיוק. מראי מקומות — שמור אותם.',
-    full: 'שכתוב מלא: שכתב מחדש במילים אחרות לניסוח מקצועי ומלוטש. חובה לכלול את כל הדברים הכתובים — אין לדלג על אף נקודה, אף משפט, אף ענין. אם המחבר כתב משהו — חייב להופיע גם בפלט, ולו בניסוח שונה. ציטוטים — כלשונם בדיוק. מראי מקומות — שמור אותם.'
+    ancient: `מצב ספר ישן — כללים מחמירים:
+• אסור לשנות ולו מילה אחת מגוף הספר.
+• מותר רק: א) פיסוק ונקודות. ב) קיטוע לקטעים. ג) הוספת מראי מקומות לפסוקים ומאמרי חז"ל. ד) פתיחת ר"ת שאינם מקובלים.
+• אין לשנות, אין להוסיף, אין למחוק שום מילה.`,
+    light: `שיוף קל — עקרון מנחה: ככל שאפשר — השאר את מילות המחבר כפי שהן.
+• שייף בעדינות: תקן מילים שאינן תקניות, ישר משפטים עקומים, שפר פיסוק.
+• אל תשכתב משפטים שלמים במילים אחרות — רק שייף.
+• אל תמחק ואל תוסיף תוכן — רק שיפור הלשון.
+• ציטוטים ומ"מ — כלשונם ובמקומם.`,
+    medium: `שכתוב חלקי — ניסוח מחדש של קטעים הדורשים שיפור:
+• קטעים ברורים — שמור קרוב למקור. קטעים קשים — שכתב.
+• שמור על כל הרעיונות והחידושים — אסור למחוק.
+• ציטוטים — כלשונם המדויק. מ"מ — שמור.`,
+    full: `שכתוב מלא — כתיבה מחדש מקצועית:
+• שכתב הכל במילים אחרות לניסוח מקצועי ומלוטש.
+• חובה לכלול כל נקודה, כל ענין, כל משפט — אסור לדלג.
+• ציטוטים — כלשונם המדויק. מ"מ — שמור כלשונם ובמקומם.`
   }[strengthVal] || '';
   const nikud = document.getElementById('opt-nikud').checked;
   const quotes = document.getElementById('opt-quotes').checked;
@@ -1469,6 +1491,14 @@ function buildPrompt(scan = false) {
 אין להשתמש בעברית מודרנית.
 אין להשתמש בלועזיות.
 אין להשתמש בביטויים למדניים כגון: ודו"ק / ועיין היטב / ואכמ"ל / וד"ל.
+
+כלל יסוד — בדיקת כל מילה:
+לפני כל מילה שאתה כותב — שאל את עצמך: האם מילה זו מצויה בתנ"ך, במשנה, בגמרא, במדרש, בראשונים? אם לא — אסור להשתמש בה. עברית מודרנית שנוצרה בדורות האחרונים אינה לשון הקודש ואסורה לחלוטין בגוף הספר, גם אם היא נשמעת "יפה" או "מקצועית".
+
+דוגמאות למילים שאסורות כי הן עברית מודרנית ולא לשון קודש:
+הדמיה · ניהול · מערכת · שיטתי · מבנה · תהליך · שלב · ניתוח · תוצאה (במשמע result) · פרויקט · אינטראקציה · מודל · פרמטר · נושא (במשמע topic) · רקע · היבט · ממד · מסגרת · תפקיד (במשמע role) · גישה · עמדה · עמדה (במשמע position) · רמה · מגמה · תהליך · פוטנציאל · אתגר · יעד · כלי · משאב
+
+במקומן יש להשתמש במילים מלשון הקודש בלבד.
 
 המרות חובה — לשון מודרנית → לשון קודש:
 • "בגלל" / "בשל" → "מחמת" / "מפני"
@@ -1658,8 +1688,12 @@ ${headingInstr()}
 • "קטע" → "פסקה" / "ענין"
 • "רצף" → "המשך" / "זרימה"
 • "ניתוח" → "בירור" / "עיון" / "פירוש" — אסור בהחלט להשתמש במילה ניתוח
+• "הדמיה" → "דוגמה" / "דמיון" / "המחשה"
+• "ניהול" → "הנהגה" / "סדר"
+• "מערכת" → "סדר" / "מהלך"
+• "שיטתי" → "מסודר" / "על דרך כלל"
+• "אינטרקציה" / "תהליך" → "מהלך"
 • "מבנה" → "סדר" / "דרך"
-• "תהליך" → "מהלך"
 • "שלב" → השמט
 • "מתעורר קושי" → "יש להקשות" / "קשה לומר"
 • "יש לציין שברמב"ם מבואר..." → "כן כתב הרמב"ם..."
@@ -1741,43 +1775,60 @@ ${customRules()}`;
   if (S.mode === 'heb') {
     const simple = document.getElementById('opt-heb-simple')?.checked;
     const nikudHeb = document.getElementById('opt-nikud')?.checked;
-    return `אתה עורך עברית מקצועי מומחה. שכתב את הטקסט לעברית תקנית, בהירה ומלוטשת.
+    return `אתה עורך עברית מקצועי מומחה בעל ניסיון רב בעריכת ספרות תורנית ורבנית.
+משימתך: לשכתב את הטקסט לעברית תקנית, בהירה, זורמת ומלוטשת.
+
+כלל א — שפה: עברית תקנית ומדויקת, לא ארכאית. משפטים זורמים ללא כבדות. אחידות סגנונית. אין לשנות שמות, ר"ת, כינויי כבוד ושמות ספרים.
+כלל ב — תוכן: שמור כל הרעיונות — אסור למחוק. ציטוטים — כלשונם המדויק. מראי מקומות — שמור אותם ואל תמחק.
+כלל ג — פיסוק: תקני ומדויק. קיטוע לפסקות. כותרות קצרות ללא נקודה בסוף.
+כלל ד — כתיב: כתיב מלא. מספרים במילים.
 ${str}
-${simple ? '• משפטים קצרים וברורים, ללא סרבולים ולא מילים מיותרות.' : ''}
-${nikudHeb ? '• הוסף ניקוד חלקי למילים בעלות קריאה שאינה ברורה.' : ''}
-${quotes ? '• שמור על ציטוטים כלשונם המדויק.' : ''}
-${fn ? '• שפר גם את שפת הערות השוליים.' : ''}
+${simple ? 'משפטים קצרים — לא מעל 3 שורות למשפט.' : ''}
+${nikudHeb ? 'ניקוד חלקי למילים שיש חשש לקריאה שגויה.' : ''}
+${quotes ? 'ציטוטים — כלשונם המדויק.' : ''}
+${fn ? 'שפר גם שפת הערות השוליים.' : ''}
 ${headingInstr()}
 ${customRules()}
-החזר טקסט בלבד, ללא הסברים.`;
+החזר טקסט בלבד ללא הסברים.`;
   }
   if (S.mode === 'legal') {
     const defs = document.getElementById('opt-legal-defs')?.checked;
     const formal = document.getElementById('opt-legal-formal')?.checked;
     const nikudLegal = document.getElementById('opt-nikud')?.checked;
-    return `אתה עורך דין ועורך לשון משפטי מומחה. נסח את הטקסט בלשון משפטית תקנית ומדויקת.
+    return `אתה עורך דין ועורך לשון משפטי מומחה.
+משימתך: לנסח את הטקסט בלשון משפטית תקנית, מדויקת ומקצועית.
+
+כלל א — לשון: ברורה וחד-משמעית. אחידות מונחים לאורך המסמך. אין לקצר בלשון שעלול לפגוע בדיוק.
+כלל ב — מבנה: כל סעיף — ענין אחד. כותרות מנחות. הגדרות לפני השימוש במונח.
+כלל ג — ניסוח: "יהיה/יעשה" לא "יהא". "בהתאם להוראות" לא "על פי". "מבלי לגרוע" — רק כשנחוץ. שמור כל הרעיונות — אסור למחוק. ציטוטים מחוק/פסיקה — כלשונם עם הפניה.
 ${str}
-${formal ? '• השתמש בנוסח פורמלי: "הצדדים", "המוסכם", "בהתאם להוראות", "מבלי לגרוע מכלליות האמור".' : ''}
-${defs ? '• הגדר מונחים מרכזיים בפירוש.' : ''}
-${nikudLegal ? '• הוסף ניקוד לפי הצורך לבהירות.' : ''}
-${quotes ? '• שמור על ציטוטים מחוקים ופסיקה כלשונם.' : ''}
-${fn ? '• שפר שפת הערות שוליים, כולל הפניות לחוק.' : ''}
+${formal ? 'נוסח פורמלי: "הצדדים מסכימים", "בהתאם להוראות ההסכם".' : ''}
+${defs ? 'הגדר כל מונח מרכזי בפירוש מפורש.' : ''}
+${nikudLegal ? 'ניקוד למונחים שיש בהם חשש לאי-בהירות.' : ''}
+${quotes ? 'ציטוטים מחוק ופסיקה — כלשונם עם הפניה.' : ''}
+${fn ? 'הערות שוליים — הפניות לחוק, תקנות ופסיקה בניסוח תקני.' : ''}
 ${headingInstr()}
 ${customRules()}
-החזר טקסט בלבד, ללא הסברים.`;
+החזר טקסט בלבד ללא הסברים.`;
   }
   if (S.mode === 'eng') {
     const active = document.getElementById('opt-eng-active')?.checked;
     const concise = document.getElementById('opt-eng-concise')?.checked;
-    return `You are an expert professional English editor. Rewrite the text in clear, polished, professional English.
+    return `You are an expert professional English editor with expertise across all document types.
+Your task: Rewrite the text in clear, polished, professional English — appropriate to the document's purpose and audience.
+
+Rule 1 — Language: Standard professional English. Clear, precise vocabulary. Consistent terminology throughout. Natural, flowing sentences — not stiff or over-formal.
+Rule 2 — Content: Preserve every idea — never delete content. Direct quotes — verbatim in quotation marks. Source references — preserve all as-is. Never delete footnotes or references.
+Rule 3 — Structure: Clear paragraph breaks with logical flow. Varied sentence length. Section headings: concise, no period at end.
+Rule 4 — Style: Appropriate register for the document type (academic, business, personal, etc.). Footnotes: clear and consistent style.
 ${str}
-${active ? '• Prefer active voice over passive where natural.' : ''}
-${concise ? '• Eliminate redundancy. Keep sentences tight and purposeful.' : ''}
-${quotes ? '• Preserve all direct quotes verbatim.' : ''}
-${fn ? '• Improve the language of footnotes as well.' : ''}
+${active ? 'Prefer active voice over passive where natural and appropriate.' : ''}
+${concise ? 'Cut unnecessary words. Every sentence should earn its place.' : ''}
+${quotes ? 'All direct quotes: verbatim, in quotation marks.' : ''}
+${fn ? 'Improve footnote language: precise academic style with proper citation format.' : ''}
 ${headingInstr()}
 ${customRules()}
-Return text only — no explanations, no commentary.`;
+Return text only — no meta-commentary, no explanations.`;
   }
 }
 
@@ -2071,20 +2122,25 @@ function getResult() {
 }
 
 async function exportWithTrack() {
-  const orig = S.chapters?.map(ch => ch.text || '').filter(Boolean).join('\n\n') || S_origForDiff || '';
+  const orig = S_origForDiff || S.chapters?.map(ch => ch.text || '').filter(Boolean).join('\n\n') || '';
   const edited = getResult();
   if (!edited) { alert('אין חומר לייצוא'); return; }
-  
-  // Always export clean edited file
+
+  // Export 1: clean edited file
   await exportWordWithContent(edited, 'ערוך.docx');
-  
-  // If we have original - also export it for comparison
+
+  // Export 2: original for comparison
   if (orig && orig.trim() !== edited.trim()) {
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 700));
     await exportWordWithContent(orig, 'מקור-להשוואה.docx');
     setTimeout(() => {
-      alert('יוצאו שני קבצים:\n\n1. ערוך.docx — הגרסה הערוכה\n2. מקור-להשוואה.docx — המקור\n\nלהצגת עקוב אחרי שינויים ב-Word:\nפתח ערוך.docx ← סקירה ← השוואה ← השוואת מסמכים ← בחר "מקור-להשוואה" כמסמך המקורי');
-    }, 1200);
+      alert('יוצאו שני קבצים:\n\n' +
+        '1. ערוך.docx\n2. מקור-להשוואה.docx\n\n' +
+        'לעקוב אחרי שינויים ב-Word:\n' +
+        'פתח ערוך.docx ← לשונית "סקירה" ←\n"השוואה" ← "השוואת מסמכים" ←\nבחר מקור-להשוואה.docx כמסמך המקורי');
+    }, 1400);
+  } else {
+    alert('יוצא: ערוך.docx\n(אין מקור זמין להשוואה)');
   }
 }
 
@@ -2103,6 +2159,21 @@ function collectSettings() {
     fname: document.getElementById('expname')?.value?.trim() || 'עט-סופר-עריכה',
     rtl: S.mode !== 'eng',
   };
+}
+
+function parseLineToRuns(line, font, fs, rtl) {
+  const { TextRun } = docx;
+  const runs = [];
+  // Split on ***bold-italic***, **bold**, *italic*
+  const re = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*([^*]+?)\*|([^*]+))/g;
+  let m;
+  while ((m = re.exec(line)) !== null) {
+    if (m[2]) runs.push(new TextRun({ text: m[2], font, size: fs*2, bold: true, italics: true, rtl }));
+    else if (m[3]) runs.push(new TextRun({ text: m[3], font, size: fs*2, bold: true, rtl }));
+    else if (m[4]) runs.push(new TextRun({ text: m[4], font, size: fs*2, italics: true, rtl }));
+    else if (m[5]) runs.push(new TextRun({ text: m[5], font, size: fs*2, rtl }));
+  }
+  return runs.length ? runs : [new TextRun({ text: line, font, size: fs*2, rtl })];
 }
 
 async function exportWord(overrideName) {
@@ -2160,7 +2231,8 @@ async function exportWord(overrideName) {
       }
       const isHeb = /[א-ת]/.test(t);
       const paraRtl = rtl || isHeb;
-      const paraChildren = [new TextRun({ text: t, font: paraRtl ? font : 'Georgia', size: fs*2, rtl: paraRtl })];
+      // Parse bold/italic markers into TextRun array
+      const paraChildren = parseLineToRuns(t, font, fs, paraRtl);
       paras.push(new Paragraph({
         children: paraChildren,
         alignment: paraRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
@@ -2168,13 +2240,38 @@ async function exportWord(overrideName) {
         spacing: { before: 0, after: 120, line: Math.round(ls*240), lineRule: LineRuleType.AUTO }
       }));
     }
-    if (fnTxt) {
-      paras.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { before: 400, after: 0 }, border: { top: { style: 'single', size: 6, color: '8B6210' } } }));
-      paras.push(new Paragraph({ children: [new TextRun({ text: 'הערות שוליים', font, size: (fs+2)*2, bold: true })], alignment: AlignmentType.RIGHT, bidirectional: true, spacing: { before: 100, after: 120 } }));
+    // Footnotes section - append at end with separator
+    if (fnTxt && fnTxt.trim()) {
+      paras.push(new Paragraph({ children: [], spacing: { before: 600, after: 0 } }));
+      paras.push(new Paragraph({
+        children: [new TextRun({ text: '─────────────', font, size: 18, color: '8B6210' })],
+        alignment: AlignmentType.RIGHT, spacing: { before: 0, after: 80 }
+      }));
+      paras.push(new Paragraph({
+        children: [new TextRun({ text: 'הערות שוליים', font, size: (fs+2)*2, bold: true })],
+        alignment: AlignmentType.RIGHT, bidirectional: true, spacing: { before: 60, after: 160 }
+      }));
       for (const line of fnTxt.split('\n')) {
         const t = line.trim();
         if (!t) continue;
-        paras.push(new Paragraph({ children: [new TextRun({ text: t, font, size: (fs-2)*2 })], alignment: AlignmentType.RIGHT, bidirectional: true, spacing: { before: 0, after: 80, line: Math.round(1.5*240), lineRule: LineRuleType.AUTO } }));
+        // Detect footnote number prefix like [1] or ¹
+        const fnMatch = t.match(/^\[(\d+)\]\s*(.+)/) || t.match(/^(\d+)\.\s*(.+)/);
+        if (fnMatch) {
+          paras.push(new Paragraph({
+            children: [
+              new TextRun({ text: fnMatch[1] + '. ', font, size: (fs-2)*2, bold: true, rtl: true }),
+              new TextRun({ text: fnMatch[2], font, size: (fs-2)*2, rtl: true })
+            ],
+            alignment: AlignmentType.RIGHT, bidirectional: true,
+            spacing: { before: 0, after: 80, line: Math.round(1.5*240), lineRule: LineRuleType.AUTO }
+          }));
+        } else {
+          paras.push(new Paragraph({
+            children: parseLineToRuns(t, font, fs-2, true),
+            alignment: AlignmentType.RIGHT, bidirectional: true,
+            spacing: { before: 0, after: 80, line: Math.round(1.5*240), lineRule: LineRuleType.AUTO }
+          }));
+        }
       }
     }
     // Add nikud note if requested
@@ -2263,6 +2360,69 @@ function toggleDiff() {
     res.innerHTML = parseMarkdown(result);
     res.contentEditable = 'true';
   }
+}
+
+function computeDiffInteractive(orig, edited) {
+  // Same LCS algorithm but with interactive per-change spans
+  const origWords = orig.split(/\s+/).filter(w=>w);
+  const editWords = edited.split(/\s+/).filter(w=>w);
+  const n = origWords.length, m = editWords.length;
+  const dp = Array.from({length:n+1}, (_,i) => Array.from({length:m+1}, (_,j) => i===0?j:j===0?i:0));
+  for (let i=1;i<=n;i++) for (let j=1;j<=m;j++) {
+    if (origWords[i-1]===editWords[j-1]) dp[i][j]=dp[i-1][j-1];
+    else dp[i][j]=1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  }
+  let i=n,j=m; const ops=[];
+  while(i>0||j>0){
+    if(i>0&&j>0&&origWords[i-1]===editWords[j-1]){ops.unshift({t:'eq',v:origWords[i-1]});i--;j--;}
+    else if(j>0&&(i===0||dp[i][j-1]<=dp[i-1][j])){ops.unshift({t:'ins',v:editWords[j-1]});j--;}
+    else{ops.unshift({t:'del',v:origWords[i-1]});i--;}
+  }
+  // Group consecutive ins/del pairs as single changes
+  let changeId = 0;
+  const result = [];
+  let k = 0;
+  while (k < ops.length) {
+    const op = ops[k];
+    if (op.t === 'eq') {
+      result.push(op.v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + ' ');
+      k++;
+    } else {
+      // Collect consecutive non-eq ops
+      const id = 'ch' + (changeId++);
+      const dels = [], ins = [];
+      while (k < ops.length && ops[k].t !== 'eq') {
+        if (ops[k].t === 'del') dels.push(ops[k].v);
+        else ins.push(ops[k].v);
+        k++;
+      }
+      const delTxt = dels.join(' ');
+      const insTxt = ins.join(' ');
+      const btns = '<span style="display:inline-flex;gap:2px;vertical-align:middle;margin:0 3px">' +
+        '<button onclick="acceptChange(\'' + id + '\')" title="קבל" style="font-size:10px;padding:1px 5px;background:rgba(76,175,80,0.2);border:1px solid #4caf50;border-radius:3px;cursor:pointer;color:#90ee90">✓</button>' +
+        '<button onclick="rejectChange(\'' + id + '\')" title="דחה" style="font-size:10px;padding:1px 5px;background:rgba(180,30,30,0.2);border:1px solid #cc4444;border-radius:3px;cursor:pointer;color:#ff9090">✗</button>' +
+        '</span>';
+      result.push('<span id="' + id + '" data-del="' + encodeURIComponent(delTxt) + '" data-ins="' + encodeURIComponent(insTxt) + '">');
+      if (delTxt) result.push('<span class="diff-del" data-diff="del">' + delTxt.replace(/&/g,'&amp;') + '</span> ');
+      if (insTxt) result.push('<span class="diff-ins" data-diff="ins">' + insTxt.replace(/&/g,'&amp;') + '</span> ');
+      result.push(btns + '</span>');
+    }
+  }
+  return result.join('');
+}
+
+function acceptChange(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const ins = decodeURIComponent(el.dataset.ins || '');
+  el.outerHTML = ins ? ins + ' ' : '';
+}
+
+function rejectChange(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const del = decodeURIComponent(el.dataset.del || '');
+  el.outerHTML = del ? del + ' ' : '';
 }
 
 function computeDiff(orig, edited) {
@@ -2463,11 +2623,12 @@ function openTrackViewer() {
 
   // Fill track changes pane
   if (orig) {
-    const diffHtml = computeDiff(orig, edited);
-    const insCount = (diffHtml.match(/class="diff-ins"/g)||[]).length;
-    const delCount = (diffHtml.match(/class="diff-del"/g)||[]).length;
+    // Build diff with per-change accept/reject buttons
+    const diffHtml = computeDiffInteractive(orig, edited);
+    const insCount = (diffHtml.match(/data-diff="ins"/g)||[]).length;
+    const delCount = (diffHtml.match(/data-diff="del"/g)||[]).length;
     document.getElementById('tv-track-body').innerHTML =
-      '<div style="padding:0;direction:rtl;text-align:right">' + diffHtml + '</div>';
+      '<div style="direction:rtl;text-align:right;line-height:2.2">' + diffHtml + '</div>';
     document.getElementById('tv-change-count').textContent =
       insCount + ' תוספות · ' + delCount + ' מחיקות';
     document.getElementById('tv-stats').textContent =
