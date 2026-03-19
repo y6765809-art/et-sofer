@@ -926,13 +926,7 @@ mark.find-cur { background: rgba(255,130,0,0.7); border-radius: 2px; }
           <option value="track">כן — קבל/דחה בWord</option>
         </select>
       </div>
-      <div class="field">
-        <label>ניקוד פסוקים</label>
-        <select id="exp-pasuk-nk">
-          <option value="none">ללא ניקוד</option>
-          <option value="nikud">עם ניקוד מלא</option>
-        </select>
-      </div>
+
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
       <button class="btn btn-green btn-lg" onclick="exportWord()">💾 ייצא לWord (.docx)</button>
@@ -1626,7 +1620,14 @@ function buildPrompt(scan = false) {
 • אסור למחוק שום חידוש או רעיון מקורי של המחבר — גם אם הניסוח קשה.
 • ציטוט מספר אחר — כלשונו המדויק ללא שינוי אפילו מילה אחת.
 • מראי מקומות — שמור אותם כפי שהם. אל תמחק מ"מ קיים.
-• הערות שוליים — שמור את מספרי ההפניות בגוף הטקסט בפורמט (¹) (²) (³) וכד' בדיוק במקומם. בסוף הטקסט כתוב שורת הפרדה "---" ואז את ההערות בפורמט: ¹ טקסט ההערה. כל הערה בשורה נפרדת.
+• הערות שוליים:
+  - מספרי ההפניות בגוף הטקסט ([1],[2] וכד') — שמור בדיוק במקומם, אל תוסיף ואל תמחק.
+  - תוכן ההערות — ערוך לפי רמת העריכה:
+    ספר ישן: אל תגע בהערות כלל.
+    שיוף קל: עריכת לשון קלה בלבד, אל תשנה תוכן.
+    שכתוב חלקי/מלא: ערוך כמו גוף הטקסט.
+  - אל תוסיף הערות שוליים חדשות.
+  - לאחר הטקסט הראשי כתוב "---" ואז את ההערות: [1] טקסט ההערה.
 • לפסוק או מאמר חז"ל המוזכרים ללא מ"מ — הוסף מ"מ מדויק בסוגריים.
   כלל ברזל לציון מ"מ: בדוק היטב לפני הוספה. אם אינך בטוח במאה אחוז — אל תוסיף כלל. עדיף להשמיט מאשר לטעות.
   מקורות מוסמכים לחיפוש:
@@ -1775,6 +1776,19 @@ ${headingInstr()}
 ציטוטי חז"ל וספרים שעליהם נסוב הקטע — מודגשים.
 מראי מקומות רק בסוגריים עגולות () — ללא הוספת אותיות (כגון לא לכתוב "במדרש..").
 אם מביאים מקור בשם ספר אחר: (הו"ד בישמח משה...).
+
+═══════════════════════════════════════
+כלל יד — כללים מכון תוצאות
+═══════════════════════════════════════
+• ציטוט ארוך (מעל שורה-שתיים) — יפתח ב"וז"ל" ויסתיים ב"עכ"ל".
+• ציטוט קצר — במרכאות בלבד, ללא וז"ל/עכ"ל.
+• דבר צדדי — בסוגריים מרובעות [ ].
+• נקודה בסוף כל הערה.
+• הערה בסוף המשפט עליו היא נסובה — לא באמצעו.
+• אין לשים שתי הפניות על מילה אחת — יש לאחדן.
+• פסיק — בסוף משפט; נקודה — בסוף קטע שלם.
+• לשון פסוק שעליה נסוב הקטע — מודגשת.
+• מ"מ רק בסוגריים עגולות ().
 
 ═══════════════════════════════════════
 כלל טו — סגנון, היסטוריה ואחריות
@@ -1958,7 +1972,18 @@ async function processSingle() {
   try {
     document.getElementById('pfill').style.width = '30%';
     document.getElementById('ptxt').textContent = 'שולח למודל... (' + model.includes('opus') ? 'Opus' : 'Sonnet' + ')';
-    const result = await callClaude(key, sys, fullText, model, (partial) => {
+    // For ancient mode: don't send footnotes to AI
+    const fnSepMark2 = '---הערות שוליים---';
+    let bodyOnly = fullText;
+    let fnSuffix = '';
+    const strengthSingle = document.getElementById('strength').value;
+    const fnIdx2 = fullText.indexOf(fnSepMark2);
+    if (fnIdx2 > -1 && strengthSingle === 'ancient') {
+      bodyOnly = fullText.slice(0, fnIdx2).trim();
+      fnSuffix = fullText.slice(fnIdx2);
+    }
+    
+    const result = await callClaude(key, sys, bodyOnly, model, (partial) => {
       const res = document.getElementById('res-text');
       res.innerHTML = parseMarkdown(partial);
       document.getElementById('rdot').classList.add('on');
@@ -1968,12 +1993,15 @@ async function processSingle() {
     document.getElementById('ptxt').textContent = '✓ הושלם!';
     S.allResult = result; S.results = { 0: result };
     const res = document.getElementById('res-text');
-    res.innerHTML = parseMarkdown(result); res.contentEditable = 'true';
+    res.innerHTML = parseMarkdown(finalResult || result); res.contentEditable = 'true';
     document.getElementById('rdot').classList.add('on');
     document.getElementById('rcnt').textContent = wc(result) + ' מילים';
     document.getElementById('export-card').style.display = 'block';
+    const finalResult = fnSuffix ? result + '\n\n' + fnSuffix : result;
+    S.allResult = finalResult;
+    S.results[0] = finalResult;
     setGst('dn', '✓ הושלם');
-    lg('ok', `✓ הושלם · ${result.length.toLocaleString()} תווים בפלט`);
+    lg('ok', `✓ הושלם · ${finalResult.length.toLocaleString()} תווים בפלט`);
     document.getElementById('btn-editor').style.display = 'inline-flex';
     document.getElementById('btn-track').style.display = 'inline-flex';
     if (document.getElementById('strength').value === 'light') {
@@ -2037,11 +2065,31 @@ async function startProcessing() {
     let out = null, tries = 0;
     while (tries < 3 && out === null) {
       try {
-        out = await callClaude(key, sys, ch.text || '', model, (partial) => {
+        // For ancient mode: separate footnotes, don't send to AI
+        const chText = ch.text || '';
+        const fnSepMark = '---הערות שוליים---';
+        let bodyToSend = chText;
+        let fnToReattach = '';
+        const strengthNow = document.getElementById('strength').value;
+        const fnSepIdx = chText.indexOf(fnSepMark);
+        
+        if (fnSepIdx > -1 && strengthNow === 'ancient') {
+          // Ancient: never touch footnotes
+          bodyToSend = chText.slice(0, fnSepIdx).trim();
+          fnToReattach = chText.slice(fnSepIdx);
+        }
+        // Other modes: send all including footnotes (AI knows what to do per strength)
+        
+        out = await callClaude(key, sys, bodyToSend, model, (partial) => {
           const res = document.getElementById('res-text');
           res.innerHTML = parseMarkdown(partial);
           document.getElementById('rdot').classList.add('on');
         });
+        
+        // Re-attach original footnotes for ancient mode
+        if (fnToReattach) {
+          out = out + '\n\n' + fnToReattach;
+        }
         if (!out || out.length < 5) throw new Error('תגובה ריקה');
       } catch(e) {
         tries++;
@@ -2284,6 +2332,7 @@ async function exportWord(overrideName) {
         children: paraChildren,
         alignment: paraRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
         bidirectional: paraRtl,
+        rightToLeft: paraRtl,
         spacing: { before: 0, after: 120, line: Math.round(ls*240), lineRule: LineRuleType.AUTO }
       }));
     }
@@ -2693,6 +2742,19 @@ function openTrackViewer() {
 }
 
 function closeTrackViewer() {
+  // Save current state of track body back to result
+  const trackBody = document.getElementById('tv-track-body');
+  const resEl = document.getElementById('res-text');
+  if (trackBody && trackBody.innerText.trim()) {
+    // Extract plain text from track viewer (removing diff markup)
+    const plainText = trackBody.innerText;
+    if (plainText.trim()) {
+      resEl.innerHTML = parseMarkdown(plainText);
+      S.allResult = plainText;
+      const curCh = S.curCh;
+      if (curCh !== undefined) S.results[curCh] = plainText;
+    }
+  }
   document.getElementById('track-viewer').classList.remove('open');
 }
 
