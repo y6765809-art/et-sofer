@@ -205,6 +205,7 @@ body {
   margin-bottom: 10px;
   font-family: var(--FU); font-size: 13px; font-weight: 700; color: var(--ink2);
 }
+.ch-item-fn { border-top: 1px solid rgba(200,151,42,0.3); margin-top: 4px; opacity: 0.8; }
 .ch-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 14px; border: 1px solid var(--border);
@@ -891,7 +892,7 @@ mark.find-cur { background: rgba(255,130,0,0.7); border-radius: 2px; }
         <div class="text-area" id="res-text" contenteditable="false" style="direction:rtl;text-align:right">
           <div class="empty"><div class="empty-icon">✨</div><span>כאן יופיע הטקסט המעובד</span></div>
         </div>
-        <div id="diff-btn-row" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;display:none">
+        <div id="diff-btn-row" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap">
           <button class="btn btn-outline btn-sm" id="btn-diff" onclick="toggleDiff()">🔍 הצג שינויים</button>
           <div id="diff-legend" style="display:none;align-items:center;gap:10px;font-size:12px;font-family:var(--FU)">
             <span><span style="background:#d4f7d4;padding:1px 6px;border-radius:3px">ירוק</span> = נוסף</span>
@@ -935,7 +936,7 @@ mark.find-cur { background: rgba(255,130,0,0.7); border-radius: 2px; }
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
       <button class="btn btn-green btn-lg" onclick="exportWord()">💾 ייצא לWord (.docx)</button>
-      <button class="btn btn-outline" onclick="exportWithTrack()" title="מייצא שני קבצים — מקור וערוך. פתח ב-Word ובחר: סקירה ← השוואה">📋 ייצוא + מעקב שינויים</button>
+      <button class="btn btn-outline" onclick="exportWithTrack()" title="מייצא שני קבצים — מקור וערוך. פתח ב-Word ובחר: סקירה ← השוואה">📋 ייצוא + עקוב שינויים (2 קבצים)</button>
       <span style="font-size:12px;color:var(--muted);font-family:var(--FU)">כולל הערות שוליים</span>
     </div>
     <div id="epwrap" style="display:none">
@@ -1252,12 +1253,18 @@ function detectCh(text) {
 function renderCh() {
   const list = document.getElementById('ch-list');
   list.innerHTML = '';
+  // Add footnotes chapter at end if not already there
+  const hasFnCh = S.chapters.some(ch => ch._isFn);
+  if (!hasFnCh && S.footnotes?.length > 0) {
+    S.chapters.push({ title: '📝 הערות שוליים', text: S.footnotes.map(f => '[' + f.id + '] ' + f.text).join('\n\n'), _isFn: true });
+  }
   S.chapters.forEach((ch, i) => {
     const d = document.createElement('div');
-    d.className = 'ch-item'; d.id = 'chi-' + i;
+    d.className = 'ch-item' + (ch._isFn ? ' ch-item-fn' : ''); d.id = 'chi-' + i;
     d.onclick = () => showCh(i);
     const pg = Math.ceil((ch.text||'').length / 1500);
-    d.innerHTML = `<div class="ch-num">${i+1}</div><div class="ch-title-text">${ch.title}</div><div class="ch-meta-text">~${pg} עמ'</div><div class="ch-st" id="chs-${i}"></div>`;
+    const done = S.results[i] ? '✓' : '';
+    d.innerHTML = '<div class="ch-num">' + (i+1) + '</div><div class="ch-title-text">' + ch.title + '</div><div class="ch-meta-text">~' + pg + ' עמ\'</div><div class="ch-st" id="chs-' + i + '">' + done + '</div>';
     list.appendChild(d);
   });
 }
@@ -1272,6 +1279,14 @@ function showCh(i) {
   document.getElementById('odot').classList.add('on');
   document.getElementById('ocnt').textContent = wc(S.chapters[i].text || '') + ' מילים';
   document.getElementById('cur-ch').textContent = S.chapters[i].title;
+  // If this chapter has a result - show it
+  if (S.results[i]) {
+    const res = document.getElementById('res-text');
+    res.innerHTML = parseMarkdown(S.results[i]);
+    res.contentEditable = 'true';
+    document.getElementById('rdot').classList.add('on');
+    document.getElementById('rcnt').textContent = wc(S.results[i]) + ' מילים';
+  }
   document.querySelectorAll('.ch-item').forEach((el, j) => el.classList.toggle('ch-active', j === i));
 }
 
@@ -1395,7 +1410,7 @@ function headingInstr() {
   if (S.heading === 'custom') {
     const rules = (document.getElementById('custom-rules')?.value || '').trim();
     if (rules && (rules.includes('כותרת') || rules.includes('heading') || rules.includes('Heading'))) {
-      return S.mode === 'eng' ? 'Heading instructions: follow the custom instructions below for all heading placement and formatting.' : 'כותרות: פעל לפי ההוראות המותאמות שלמטה לגבי מיקום וסגנון הכותרות.';
+      return S.mode === 'eng' ? 'Heading instructions: follow the custom instructions below for all heading placement and formatting.' : 'כותרות: פעל לפי ההוראות המותאמות שלמטה לגבי מקום וסגנון הכותרות.';
     }
     return S.mode === 'eng' ? 'Add headings as instructed in the custom rules below.' : 'הוסף כותרות לפי ההוראות המותאמות שלמטה.';
   }
@@ -1566,7 +1581,7 @@ function buildPrompt(scan = false) {
 • אסור למחוק שום חידוש או רעיון מקורי של המחבר — גם אם הניסוח קשה.
 • ציטוט מספר אחר — כלשונו המדויק ללא שינוי אפילו מילה אחת.
 • מראי מקומות — שמור אותם כפי שהם. אל תמחק מ"מ קיים.
-• הערות שוליים — כאשר יש ציון הערה בטקסט (כגון [1] או ¹) שמור אותו במקומו המדויק. בסוף הטקסט הבא את כל ההערות לפי סדרן.
+• הערות שוליים — שמור את מספרי ההפניות בגוף הטקסט בפורמט (¹) (²) (³) וכד' בדיוק במקומם. בסוף הטקסט כתוב שורת הפרדה "---" ואז את ההערות בפורמט: ¹ טקסט ההערה. כל הערה בשורה נפרדת.
 • לפסוק או גמרא שמוזכרים בלי מ"מ — הוסף מ"מ מדויק. בדוק היטב שהוא נכון.
 • צורת הציון — תמיד בסוגריים עגולות:
   תנ"ך: (שמות כ, ה) · (דברים ו, ד)
@@ -1637,6 +1652,10 @@ ${headingInstr()}
 • "פריטים" → "דברים" / "ענינים"
 • "קטע" → "פסקה" / "ענין"
 • "רצף" → "המשך" / "זרימה"
+• "ניתוח" → "בירור" / "עיון" / "פירוש" — אסור בהחלט להשתמש במילה ניתוח
+• "מבנה" → "סדר" / "דרך"
+• "תהליך" → "מהלך"
+• "שלב" → השמט
 • "מתעורר קושי" → "יש להקשות" / "קשה לומר"
 • "יש לציין שברמב"ם מבואר..." → "כן כתב הרמב"ם..."
 • "ניגוד" / "שונה מ..." → "שלא כ..." / "בשונה"
@@ -1956,6 +1975,8 @@ async function startProcessing() {
     res.innerHTML = parseMarkdown(out); res.contentEditable = 'true';
     document.getElementById('rdot').classList.add('on');
     document.getElementById('rcnt').textContent = wc(out) + ' מילים';
+    // Show chapter nav
+    updateChNav();
 
     if (i % 3 === 2) {
       try { localStorage.setItem('etsofer', JSON.stringify({ results: S.results, done: i+1, total, file: S.file, mode: S.mode, savedAt: new Date().toISOString() })); } catch(e) {}
@@ -1982,10 +2003,8 @@ async function startProcessing() {
   if (!S.stop) {
     document.getElementById('btn-editor').style.display = 'inline-flex';
     document.getElementById('btn-track').style.display = 'inline-flex';
-    if (document.getElementById('strength').value === 'light') {
-      const row = document.getElementById('diff-btn-row');
-      if (row) { row.style.display = 'flex'; }
-    }
+    const row = document.getElementById('diff-btn-row');
+    if (row) { row.style.display = 'flex'; }
   }
 }
 
@@ -2207,8 +2226,11 @@ function toggleDiff() {
     btn.textContent = '📄 הסתר שינויים';
     btn.style.background = 'rgba(200,151,42,0.15)';
     if (legend) legend.style.display = 'flex';
-    const orig = S_chapters[S.curCh]?.text || S_origForDiff || '';
-    const edited = res.innerText || '';
+    const chOrig = S.chapters[S.curCh]?.text || '';
+    const orig = chOrig || S_origForDiff || '';
+    const edited = res.innerText || res.textContent || '';
+    if (!orig) { alert('אין טקסט מקורי להשוואה — יש לוודא שהקובץ הועלה לפני העריכה'); S_diffMode = false; return; }
+    if (!edited) { alert('אין טקסט ערוך עדיין'); S_diffMode = false; return; }
     res.innerHTML = '<div class="diff-wrap">' + computeDiff(orig, edited) + '</div>';
     res.contentEditable = 'false';
   } else {
@@ -2222,8 +2244,6 @@ function toggleDiff() {
 }
 
 function computeDiff(orig, edited) {
-  // Sentence/chunk-level diff for cleaner display
-  const splitChunks = t => t.match(/[^.!?\n]+[.!?\n]?/g) || [t];
   const origWords = orig.split(/\s+/).filter(w=>w);
   const editWords = edited.split(/\s+/).filter(w=>w);
   const dp = [];
@@ -2521,6 +2541,49 @@ function toggleEdDiff() {
     body.innerHTML = parseMarkdown(S.results[S.curCh] || S.allResult || '');
     body.contentEditable = 'true';
   }
+}
+
+function updateChNav() {
+  const total = S.chapters.length;
+  const cur = S.curCh || 0;
+  // Show chapter nav if multiple chapters
+  let nav = document.getElementById('ch-nav-bar');
+  if (!nav) {
+    nav = document.createElement('div');
+    nav.id = 'ch-nav-bar';
+    nav.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;background:rgba(200,151,42,0.06);border-radius:4px;border:1px solid var(--border);direction:rtl';
+    const resWrap = document.getElementById('res-text')?.parentNode;
+    if (resWrap) resWrap.appendChild(nav);
+  }
+  if (total <= 1) { nav.style.display = 'none'; return; }
+  nav.style.display = 'flex';
+  nav.innerHTML = `
+    <button class="tb-btn" onclick="navCh(-1)" ${cur === 0 ? 'disabled style="opacity:0.4"' : ''}>◀ קודם</button>
+    <span style="font-family:var(--FU);font-size:12px;color:var(--muted);flex:1;text-align:center">
+      פרק ${cur+1} מתוך ${total}: ${S.chapters[cur]?.title || ''}
+    </span>
+    <button class="tb-btn" onclick="navCh(1)" ${cur >= total-1 ? 'disabled style="opacity:0.4"' : ''}>הבא ▶</button>
+  `;
+}
+
+function navCh(dir) {
+  const newCh = (S.curCh || 0) + dir;
+  if (newCh < 0 || newCh >= S.chapters.length) return;
+  S.curCh = newCh;
+  showCh(newCh);
+  const result = S.results[newCh];
+  const res = document.getElementById('res-text');
+  if (result) {
+    res.innerHTML = parseMarkdown(result);
+    res.contentEditable = 'true';
+    document.getElementById('rcnt').textContent = wc(result) + ' מילים';
+  } else {
+    res.innerHTML = '<div class="empty"><div class="empty-icon">📄</div><span>פרק זה טרם עובד</span></div>';
+  }
+  updateChNav();
+  S_diffMode = false;
+  const btn = document.getElementById('btn-diff');
+  if (btn) { btn.textContent = '🔍 הצג שינויים'; btn.style.background = ''; }
 }
 
 function updateEdStatus() {
