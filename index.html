@@ -984,10 +984,15 @@ mark.find-cur { background: rgba(255,130,0,0.7); border-radius: 2px; }
   <div class="tv-statusbar">
     <div class="tv-sync-indicator">
       <div class="tv-sync-dot" id="tv-sync-dot"></div>
-      <span>גלילה מסונכרנת פעילה</span>
+      <span>גלילה מסונכרנת</span>
     </div>
+    <span style="display:flex;align-items:center;gap:10px">
+      <span style="background:rgba(76,175,80,0.25);color:#90ee90;padding:2px 8px;border-radius:3px;font-size:11px">ירוק = נוסף</span>
+      <span style="background:rgba(180,30,30,0.25);color:#ff9090;padding:2px 8px;border-radius:3px;font-size:11px;text-decoration:line-through">אדום = נמחק</span>
+    </span>
     <span id="tv-stats"></span>
-    <span>💡 לחץ על שינוי בעמודת עקוב לניווט מהיר</span>
+    <button class="tb-btn" id="tv-accept-all" onclick="acceptAllChanges()" style="font-size:11px;padding:3px 8px">✓ קבל הכל</button>
+    <button class="tb-btn" id="tv-reject-all" onclick="rejectAllChanges()" style="font-size:11px;padding:3px 8px;background:rgba(180,30,30,0.15);border-color:rgba(180,30,30,0.4)">✗ דחה הכל</button>
   </div>
 </div>
 
@@ -2101,8 +2106,21 @@ function collectSettings() {
 }
 
 async function exportWord(overrideName) {
-  const text = getResult().trim();
-  if (!text) { alert('אין טקסט לייצוא'); return; }
+  const rawText = getResult().trim();
+  if (!rawText) { alert('אין טקסט לייצוא'); return; }
+  // Strip HTML tags and markdown markers
+  const text = rawText
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '\n')
+    .replace(/<\/div>/gi, '')
+    .replace(/<strong><em>(.*?)<\/em><\/strong>/gi, '$1')
+    .replace(/<strong>(.*?)<\/strong>/gi, '$1')
+    .replace(/<em>(.*?)<\/em>/gi, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
   const fs = parseInt(document.getElementById('fsize').value);
   const ls = parseFloat(document.getElementById('lspace').value);
   const pg = document.getElementById('pgsize').value;
@@ -2128,22 +2146,26 @@ async function exportWord(overrideName) {
     for (const line of body.split('\n')) {
       const t = line.trim();
       if (!t) { paras.push(new Paragraph({ children: [], spacing: { before: 0, after: 100 } })); continue; }
-      // Handle headings
-      if (t.startsWith('### ') || t.startsWith('## ') || t.startsWith('# ')) {
-        const level = t.startsWith('# ') && !t.startsWith('## ') ? 1 : t.startsWith('## ') && !t.startsWith('### ') ? 2 : 3;
+      // Handle headings (###, ##, #)
+      if (/^#{1,3}\s/.test(t)) {
+        const level = t.startsWith('### ') ? 3 : t.startsWith('## ') ? 2 : 1;
         const htxt = t.replace(/^#+\s/, '');
         const hsize = [32, 28, 24][level-1];
-        paras.push(new Paragraph({ children: [new TextRun({ text: htxt, font, size: hsize, bold: true })], alignment: AlignmentType.CENTER, bidirectional: true, spacing: { before: 200, after: 100 } }));
+        paras.push(new Paragraph({
+          children: [new TextRun({ text: htxt, font, size: hsize, bold: true })],
+          alignment: AlignmentType.CENTER, bidirectional: true,
+          spacing: { before: 240, after: 120 }
+        }));
         continue;
       }
       const isHeb = /[א-ת]/.test(t);
       const paraRtl = rtl || isHeb;
-      const paraChildren = [new TextRun({ text: t, font: paraRtl ? font : 'Georgia', size: fs*2 })];
+      const paraChildren = [new TextRun({ text: t, font: paraRtl ? font : 'Georgia', size: fs*2, rtl: paraRtl })];
       paras.push(new Paragraph({
         children: paraChildren,
         alignment: paraRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
         bidirectional: paraRtl,
-        spacing: { before: 0, after: 100, line: Math.round(ls*240), lineRule: LineRuleType.AUTO }
+        spacing: { before: 0, after: 120, line: Math.round(ls*240), lineRule: LineRuleType.AUTO }
       }));
     }
     if (fnTxt) {
@@ -2270,9 +2292,9 @@ function computeDiff(orig, edited) {
   }
   return ops.map(op => {
     const v = op.val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    if (op.type === 'eq') return v;
-    if (op.type === 'ins') return '<span class="diff-ins">' + v + '</span>';
-    return '<span class="diff-del">' + v + '</span>';
+    if (op.type === 'eq') return v + ' ';
+    if (op.type === 'ins') return '<span class="diff-ins">' + v + '</span> ';
+    return '<span class="diff-del">' + v + '</span> ';
   }).join('');
 }
 
@@ -2584,6 +2606,26 @@ function navCh(dir) {
   S_diffMode = false;
   const btn = document.getElementById('btn-diff');
   if (btn) { btn.textContent = '🔍 הצג שינויים'; btn.style.background = ''; }
+}
+
+function acceptAllChanges() {
+  // Keep only the edited text (result)
+  const edited = getResult();
+  const res = document.getElementById('res-text');
+  res.innerHTML = parseMarkdown(edited);
+  closeTrackViewer();
+  lg('ok', '✓ כל השינויים התקבלו');
+}
+
+function rejectAllChanges() {
+  // Restore original
+  const orig = S_origForDiff || S.chapters?.map(ch=>ch.text||'').join('\n\n') || '';
+  if (!orig) { alert('אין מקור לשחזור'); return; }
+  const res = document.getElementById('res-text');
+  res.innerHTML = parseMarkdown(orig);
+  S.allResult = orig;
+  closeTrackViewer();
+  lg('ok', '✗ כל השינויים נדחו — שוחזר המקור');
 }
 
 function updateEdStatus() {
