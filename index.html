@@ -845,7 +845,7 @@ mark.find-cur { background: rgba(255,130,0,0.7); border-radius: 2px; }
     <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:flex-end">
       <div class="field">
         <label>מפתח API של Claude</label>
-        <input type="password" id="apikey" placeholder="sk-ant-api03-..." autocomplete="off">
+        <input type="password" id="apikey" placeholder="sk-ant-api03-..." autocomplete="off" oninput="saveKey()" style="font-family:monospace;font-size:12px;letter-spacing:1px">
       </div>
       <button class="btn btn-outline" style="align-self:flex-end" onclick="toggleKey()">👁</button>
       <button class="btn btn-outline" style="align-self:flex-end" onclick="testApi()">בדוק</button>
@@ -1067,6 +1067,15 @@ const S = {
   processing: false, stop: false,
   pauseResolve: null,
 };
+
+// Load saved API key
+try {
+  const savedKey = localStorage.getItem('et_sofer_key');
+  if (savedKey) document.getElementById('apikey').value = atob(savedKey);
+} catch(e) {}
+
+// Check saved progress after short delay
+setTimeout(() => { try { loadProgress(); } catch(e) {} }, 600);
 
 // ── UPLOAD ──
 document.getElementById('upload-area').addEventListener('click', () => {
@@ -1464,7 +1473,8 @@ function buildPrompt(scan = false) {
 • שייף בעדינות: תקן מילים שאינן תקניות, ישר משפטים עקומים, שפר פיסוק.
 • אל תשכתב משפטים שלמים במילים אחרות — רק שייף.
 • אל תמחק ואל תוסיף תוכן — רק שיפור הלשון.
-• ציטוטים ומ"מ — כלשונם ובמקומם.`,
+• ציטוטים ומ"מ — כלשונם ובמקומם.
+• מראי מקומות: אם פסוק או מאמר חז"ל מוזכר ללא מ"מ — הוסף מ"מ מדויק בסוגריים. חובה לבדוק היטב לפני הוספה. אם אינך בטוח במאה אחוז — אל תוסיף כלל. מקורות מוסמכים לחיפוש: search.dicta.org.il · mechon-mamre.org · toratemetfreeware.com · בר-אילן · אוצר החכמה. אין להסתמך על מקורות כלליים.`,
     medium: `שכתוב חלקי — ניסוח מחדש של קטעים הדורשים שיפור:
 • קטעים ברורים — שמור קרוב למקור. קטעים קשים — שכתב.
 • שמור על כל הרעיונות והחידושים — אסור למחוק.
@@ -1617,7 +1627,12 @@ function buildPrompt(scan = false) {
 • ציטוט מספר אחר — כלשונו המדויק ללא שינוי אפילו מילה אחת.
 • מראי מקומות — שמור אותם כפי שהם. אל תמחק מ"מ קיים.
 • הערות שוליים — שמור את מספרי ההפניות בגוף הטקסט בפורמט (¹) (²) (³) וכד' בדיוק במקומם. בסוף הטקסט כתוב שורת הפרדה "---" ואז את ההערות בפורמט: ¹ טקסט ההערה. כל הערה בשורה נפרדת.
-• לפסוק או גמרא שמוזכרים בלי מ"מ — הוסף מ"מ מדויק. בדוק היטב שהוא נכון.
+• לפסוק או מאמר חז"ל המוזכרים ללא מ"מ — הוסף מ"מ מדויק בסוגריים.
+  כלל ברזל לציון מ"מ: בדוק היטב לפני הוספה. אם אינך בטוח במאה אחוז — אל תוסיף כלל. עדיף להשמיט מאשר לטעות.
+  מקורות מוסמכים לחיפוש:
+  • פסוקים — https://search.dicta.org.il/ או https://mechon-mamre.org/i/t/t0.htm
+  • ספרי תורה — https://www.toratemetfreeware.com/ · בר-אילן · אוצר החכמה
+  אין להסתמך על מקורות כלליים, ויקיפדיה, או כתבות אינטרנט.
 • צורת הציון — תמיד בסוגריים עגולות:
   תנ"ך: (שמות כ, ה) · (דברים ו, ד)
   בבלי: (ברכות ב.) · (שבת קיח:)
@@ -1834,6 +1849,19 @@ Return text only — no meta-commentary, no explanations.`;
 
 // ── API ──
 function toggleKey() { const i = document.getElementById('apikey'); i.type = i.type === 'password' ? 'text' : 'password'; }
+function saveKey() {
+  try {
+    const k = document.getElementById('apikey').value;
+    if (k) localStorage.setItem('et_sofer_key', btoa(k));
+    else localStorage.removeItem('et_sofer_key');
+  } catch(e) {}
+}
+function loadKey() {
+  try {
+    const k = localStorage.getItem('et_sofer_key');
+    if (k) document.getElementById('apikey').value = atob(k);
+  } catch(e) {}
+}
 
 async function testApi() {
   const key = document.getElementById('apikey').value.trim();
@@ -2214,6 +2242,25 @@ async function exportWord(overrideName) {
     let body = text, fnTxt = '';
     const fnIdx = text.indexOf(fnSep);
     if (fnIdx > -1) { body = text.slice(0, fnIdx).trim(); fnTxt = text.slice(fnIdx + fnSep.length).trim(); }
+    // Build footnotes map for inline references
+    const fnMap = {};
+    if (fnTxt) {
+      for (const line of fnTxt.split('\n')) {
+        const m2 = line.trim().match(/^\[(\d+)\]\s*(.+)/);
+        if (m2) fnMap[m2[1]] = m2[2];
+      }
+    }
+    const { FootnoteReferenceRun } = docx;
+    const footnotesDef = {};
+    Object.entries(fnMap).forEach(([num, text]) => {
+      footnotesDef[parseInt(num)] = {
+        children: [new Paragraph({
+          children: [new TextRun({ text, font, size: (fs-2)*2, rtl: isRtlDoc })],
+          bidirectional: isRtlDoc
+        })]
+      };
+    });
+
     for (const line of body.split('\n')) {
       const t = line.trim();
       if (!t) { paras.push(new Paragraph({ children: [], spacing: { before: 0, after: 100 } })); continue; }
@@ -2285,12 +2332,15 @@ async function exportWord(overrideName) {
     if (trackChanges) {
       docSettings.trackChanges = true;
     }
+    const isRtlDoc = S.mode !== 'eng';
+    const hasFootnotes = Object.keys(footnotesDef).length > 0;
     const doc2 = new Document({
       ...docSettings,
+      footnotes: hasFootnotes ? footnotesDef : undefined,
       sections: [{
         properties: {
           page: { size: { width: pw, height: ph }, margin: { top: m, right: m, bottom: m, left: m } },
-          bidi: true
+          bidi: isRtlDoc
         },
         children: paras
       }]
