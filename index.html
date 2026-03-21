@@ -1193,44 +1193,73 @@ function clearFile() {
 
 // ── FOOTNOTE PROCESSOR ──
 function processFootnotes(text) {
-  // Split text into sections by --- separator
-  // Each section may have a body and footnotes
-  const sections = text.split(/\n---+\n/);
-  if (sections.length <= 1) return text;
+  // Strategy:
+  // 1. Find all footnote definitions: lines matching [N] text
+  // 2. Remove ALL footnote definition blocks (after ---)
+  // 3. Keep only body text with inline [N] markers
+  // 4. Append single clean footnotes section at end
   
-  const result = [];
-  let fnAccum = ''; // accumulated footnotes across sections
+  // Split on --- separators
+  const parts = text.split(/\n[ \t]*---+[ \t]*\n/);
   
-  for (let i = 0; i < sections.length; i++) {
-    const sec = sections[i].trim();
-    if (!sec) continue;
+  const bodyParts = [];
+  const allFnLines = [];
+  
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
     
-    // Check if this section is purely footnotes (starts with [N])
-    const isFnSection = /^\[\d+\]/.test(sec.trim());
+    // Split this part into lines
+    const lines = trimmed.split('\n');
+    const bodyLines = [];
+    const fnLines = [];
+    let inFnBlock = false;
     
-    if (isFnSection) {
-      // This is a footnote section - add to accumulator
-      fnAccum += (fnAccum ? '\n' : '') + sec;
-    } else {
-      // This is body text - add it
-      result.push(sec);
+    for (const line of lines) {
+      const t = line.trim();
+      // A footnote definition line: starts with [N]
+      if (/^\[\d+\]/.test(t)) {
+        inFnBlock = true;
+        fnLines.push(t);
+      } else if (inFnBlock && t && !/^\[\d+\]/.test(t)) {
+        // Continuation of previous footnote (multi-line)
+        if (fnLines.length > 0) {
+          fnLines[fnLines.length-1] += ' ' + t;
+        }
+      } else if (!inFnBlock) {
+        bodyLines.push(line);
+      }
+      // Skip lines like "שכתב:" that appear between footnote definitions
+    }
+    
+    const bodyText = bodyLines.join('\n').trim();
+    if (bodyText) bodyParts.push(bodyText);
+    allFnLines.push(...fnLines);
+  }
+  
+  // Deduplicate footnotes by normalized text
+  const fnSeen = new Map(); // normalized text -> best version
+  for (const line of allFnLines) {
+    const numMatch = line.match(/^\[(\d+)\]\s*(.*)/);
+    if (!numMatch) continue;
+    const num = numMatch[1];
+    const txt = numMatch[2].trim();
+    // Keep the longer/better version if duplicate
+    if (!fnSeen.has(num) || txt.length > (fnSeen.get(num)||'').length) {
+      fnSeen.set(num, txt);
     }
   }
   
-  // Combine: body sections + all footnotes at end with single separator
-  const bodyText = result.join('\n\n');
-  if (fnAccum) {
-    // Deduplicate footnotes (same [N] text appearing multiple times)
-    const fnLines = fnAccum.split('\n').filter(l => l.trim());
-    const fnSeen = new Set();
-    const fnUniq = fnLines.filter(line => {
-      const key = line.replace(/^\[\d+\]\s*/, '').trim();
-      if (fnSeen.has(key)) return false;
-      fnSeen.add(key);
-      return true;
-    });
-    return bodyText + '\n\n---הערות שוליים---\n' + fnUniq.join('\n');
+  const bodyText = bodyParts.join('\n\n');
+  
+  if (fnSeen.size > 0) {
+    const fnBlock = Array.from(fnSeen.entries())
+      .sort((a,b) => parseInt(a[0])-parseInt(b[0]))
+      .map(([num, txt]) => '[' + num + '] ' + txt)
+      .join('\n');
+    return bodyText + '\n\n---הערות שוליים---\n' + fnBlock;
   }
+  
   return bodyText;
 }
 
