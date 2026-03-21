@@ -1131,6 +1131,11 @@ async function handleFile(file) {
       }
     } catch(e) {}
   }
+  // Normalize footnote superscript markers to [N] format
+  S.raw = S.raw
+    .replace(/¹/g,'[1]').replace(/²/g,'[2]').replace(/³/g,'[3]')
+    .replace(/⁴/g,'[4]').replace(/⁵/g,'[5]').replace(/⁶/g,'[6]')
+    .replace(/⁷/g,'[7]').replace(/⁸/g,'[8]').replace(/⁹/g,'[9]');
   S_origForDiff = S.raw;
   S.chapters = detectCh(S.raw);
     renderCh();
@@ -1647,7 +1652,10 @@ function buildPrompt(scan = false) {
 • ר"ת — שני כללים פשוטים:
   כלל א — שמות של אנשים (רבנים, מחברים, פוסקים) — לעולם אין לפתוח, גם אם אינם מפורסמים. רש"י, רשב"א, ריטב"א, רא"ש וכד' — נשארים כר"ת.
   כלל ב — כל שאר הר"ת (מונחים, ביטויים, שמות ספרים, חלקי שו"ע) — פתח אותם, אלא אם הם שגורים כל כך שכולם מכירים אותם: או"ח · יו"ד · אה"ע · חו"מ · ב"י · שו"ע · עיי"ש · כנ"ל · הנ"ל · ז"ל · ע"כ · אע"פ · וכו' · וכיו"ב · דהיינו · ת"ח · א"י.
-  כלל ג — תוארי כבוד לאחר שמות — לעולם אין לפתוח: זצ"ל · זיע"א · זכ"ל · זצוק"ל · שליט"א · נ"ע · ז"ל · ע"ה · ה"ה · הי"ד · נר"ו · יצ"ו · בן · בת · ב"ר — נשארים כר"ת.
+  כלל ג — תוארי כבוד לאחר שמות — לעולם אין לפתוח, זהו איסור מוחלט:
+  ז"ל · זצ"ל · זיע"א · זכ"ל · זצוק"ל · שליט"א · נ"ע · ע"ה · ה"ה · הי"ד · נר"ו · יצ"ו · ב"ר — נשארים תמיד כר"ת.
+  דוגמאות: "רש"י ז"ל" — ז"ל נשאר. "הרמב"ם זצ"ל" — זצ"ל נשאר. "מרן שליט"א" — שליט"א נשאר.
+  חל גם על: כנ"ל · הנ"ל · ז"ל · נ"ל · ע"כ — לעולם אין לפתוח.
 • אין לשנות שם מחבר, שם ספר, שנת הוצאה, עיר הדפוס.
 
 ═══════════════════════════════════════
@@ -2192,10 +2200,20 @@ function pauseAct(a) {
 
 // ── EXPORT ──
 function getResult() {
-  if (Object.keys(S.results).length > 0) return S.chapters.map((_,i) => S.results[i]||'').filter(Boolean).join('\n\n');
-  // Get text from innerHTML (strip tags for Word export)
-  const el = document.getElementById('res-text');
-  return el.innerText || S.allResult || '';
+  let text = '';
+  if (Object.keys(S.results).length > 0) {
+    text = S.chapters.map((_,i) => S.results[i]||'').filter(Boolean).join('\n\n');
+  } else {
+    const el = document.getElementById('res-text');
+    text = el.innerText || S.allResult || '';
+  }
+  // Strip any leftover diff buttons/markers
+  return text
+    .replace(/[✓✗]/g, '')
+    .replace(/\u2713|\u2717/g, '')
+    .replace(/^\s*[VX]\s*$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 async function exportWithTrack() {
@@ -2410,22 +2428,32 @@ async function exportWord(overrideName) {
     }
     const isRtlDoc = S.mode !== 'eng';
     const hasFootnotes = Object.keys(footnotesDef).length > 0;
-    // Build document with explicit RTL settings
+    // Build document with RTL settings
     const docConfig = {
       ...docSettings,
       footnotes: hasFootnotes ? footnotesDef : undefined,
-      sections: [{
-        properties: {
-          page: { size: { width: pw, height: ph }, margin: { top: m, right: m, bottom: m, left: m } },
-          bidi: isRtlDoc,
-        },
-        children: paras
-      }]
     };
-    // Add document-level RTL setting
+    // For RTL documents: add default paragraph style
     if (isRtlDoc) {
-      docConfig.settings = { mirrorMargins: false };
+      docConfig.styles = {
+        default: {
+          document: {
+            run: { font, size: fs*2, rtl: true },
+            paragraph: {
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+            }
+          }
+        }
+      };
     }
+    docConfig.sections = [{
+      properties: {
+        page: { size: { width: pw, height: ph }, margin: { top: m, right: m, bottom: m, left: m } },
+        bidi: isRtlDoc,
+      },
+      children: paras
+    }];
     const doc2 = new Document(docConfig);
     const blob = await Packer.toBlob(doc2);
     saveAs(blob, overrideName || fname);
@@ -2775,17 +2803,20 @@ function openTrackViewer() {
 }
 
 function closeTrackViewer() {
-  // Save current state of track body back to result
   const trackBody = document.getElementById('tv-track-body');
   const resEl = document.getElementById('res-text');
   if (trackBody && trackBody.innerText.trim()) {
-    // Extract plain text from track viewer (removing diff markup)
-    const plainText = trackBody.innerText;
-    if (plainText.trim()) {
+    // Strip diff buttons and clean up text
+    let plainText = trackBody.innerText
+      .replace(/[✓✗]/g, '')
+      .replace(/^\s*[✓✗VX]\s*$/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    if (plainText) {
       resEl.innerHTML = parseMarkdown(plainText);
       S.allResult = plainText;
-      const curCh = S.curCh;
-      if (curCh !== undefined) S.results[curCh] = plainText;
+      if (S.curCh !== undefined) S.results[S.curCh] = plainText;
+      document.getElementById('rcnt').textContent = wc(plainText) + ' מילים';
     }
   }
   document.getElementById('track-viewer').classList.remove('open');
@@ -2915,11 +2946,15 @@ function navCh(dir) {
 }
 
 function acceptAllChanges() {
-  // Keep only the edited text (result)
-  const edited = getResult();
+  // Get track body text, strip buttons, save as result
+  const trackBody = document.getElementById('tv-track-body');
+  let text = trackBody ? trackBody.innerText : getResult();
+  text = text.replace(/[✓✗]/g, '').replace(/^\s*[✓\u2717VX]\s*$/gm, '').replace(/\n{3,}/g,'\n\n').trim();
   const res = document.getElementById('res-text');
-  res.innerHTML = parseMarkdown(edited);
-  closeTrackViewer();
+  res.innerHTML = parseMarkdown(text);
+  S.allResult = text;
+  if (S.curCh !== undefined) S.results[S.curCh] = text;
+  document.getElementById('track-viewer').classList.remove('open');
   lg('ok', '✓ כל השינויים התקבלו');
 }
 
