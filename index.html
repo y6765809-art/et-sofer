@@ -1193,40 +1193,72 @@ function clearFile() {
 
 // ── FOOTNOTE PROCESSOR ──
 function processFootnotes(text) {
-  // Step 1: extract ALL [N] footnote definitions from anywhere in text
-  // Step 2: remove ALL footnote sections (after ---)  
-  // Step 3: keep only clean body with inline [N] markers
-  // Step 4: append single deduplicated footnotes at end
-
-  const fnMap = new Map(); // num -> best text
-
-  // Find all [N] definitions anywhere in text (after any ---)
+  // Don't manipulate footnotes at all - send everything to AI as-is
+  // Just normalize the separator to our standard format
+  // and deduplicate identical [N] blocks that mammoth sometimes duplicates
+  
+  // Find all [N] footnote definitions
+  const fnMap = new Map();
   const fnDefRe = /^\[(\d+)\][ \t]+(.+)$/gm;
   let m;
   while ((m = fnDefRe.exec(text)) !== null) {
     const num = m[1], txt = m[2].trim();
+    // Keep longest version
     if (!fnMap.has(num) || txt.length > fnMap.get(num).length) {
       fnMap.set(num, txt);
     }
   }
 
-  // Remove everything from first --- onwards (all footnote sections)
-  const firstSep = text.search(/\n[ \t]*---+[ \t]*(\n|$)/);
-  let body = firstSep > -1 ? text.slice(0, firstSep).trim() : text.trim();
-
-  // Clean up remaining stray [N] lines in body (shouldn't be there but just in case)
-  // Keep inline [N] markers that are mid-sentence (not on their own line)
-  body = body.replace(/^\[\d+\].*$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
-
-  if (fnMap.size > 0) {
-    const fnBlock = Array.from(fnMap.entries())
-      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-      .map(([num, txt]) => '[' + num + '] ' + txt)
-      .join('\n');
-    return body + '\n\n---הערות שוליים---\n' + fnBlock;
+  // Split on --- separators 
+  const parts = text.split(/\n[ \t]*---+[ \t]*\n/);
+  
+  // Separate body parts from footnote-only parts
+  const bodyParts = [];
+  const fnParts = [];
+  
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    // A part is "footnote-only" if ALL non-empty lines start with [N] or are connectors like "שכתב:"
+    const contentLines = trimmed.split('\n').filter(l => l.trim());
+    const fnLines = contentLines.filter(l => /^\[\d+\]/.test(l.trim()));
+    const isFootnoteOnly = fnLines.length > 0 && 
+      contentLines.every(l => /^\[\d+\]/.test(l.trim()) || l.trim().length < 20);
+    
+    if (isFootnoteOnly) {
+      fnParts.push(...fnLines);
+    } else {
+      // Body part - keep as-is, but replace inline [N] --- blocks with clean footnotes
+      bodyParts.push(trimmed);
+    }
   }
-
-  return body;
+  
+  // If no separation was found, return as-is
+  if (fnParts.length === 0 && bodyParts.length <= 1) return text.trim();
+  
+  // Deduplicate footnotes
+  const seenFn = new Map();
+  for (const line of fnParts) {
+    const match = line.match(/^\[(\d+)\]\s*(.*)/);
+    if (match) {
+      const num = match[1], txt = match[2].trim();
+      if (!seenFn.has(num) || txt.length > seenFn.get(num).length) {
+        seenFn.set(num, txt);
+      }
+    }
+  }
+  
+  const bodyText = bodyParts.join('\n\n');
+  
+  if (seenFn.size > 0) {
+    const fnBlock = Array.from(seenFn.entries())
+      .sort((a,b) => parseInt(a[0])-parseInt(b[0]))
+      .map(([n,t]) => '['+n+'] '+t)
+      .join('\n');
+    return bodyText + '\n\n---הערות שוליים---\n' + fnBlock;
+  }
+  
+  return bodyText;
 }
 
 // ── CHAPTERS ──
@@ -1669,14 +1701,14 @@ function buildPrompt(scan = false) {
 • אסור למחוק שום חידוש או רעיון מקורי של המחבר — גם אם הניסוח קשה.
 • ציטוט מספר אחר — כלשונו המדויק ללא שינוי אפילו מילה אחת.
 • מראי מקומות — שמור אותם כפי שהם. אל תמחק מ"מ קיים.
-• הערות שוליים:
-  - מספרי ההפניות בגוף הטקסט ([1],[2] וכד') — שמור בדיוק במקומם, אל תוסיף ואל תמחק.
-  - תוכן ההערות — ערוך באותה רמה בדיוק כמו גוף הטקסט, לפי רמת העריכה שנבחרה.
-    ספר ישן: אל תגע בהערות כלל.
-    שאר הרמות: ערוך כמו הגוף — בדיוק אותם כללים, אותה רמת זהירות.
-    פסוק או ציטוט בתוך הערה — שמור כלשונו ללא שינוי, כמו בגוף.
-  - אל תוסיף הערות שוליים חדשות.
-  - לאחר הטקסט הראשי כתוב "---" ואז את ההערות: [1] טקסט ההערה.
+• הערות שוליים — טפל בהן בדיוק כמו גוף הטקסט:
+  - מספרי ההפניות בגוף [1],[2] וכד' — שמור במקומם המדויק, אל תזיז ואל תמחק.
+  - ערוך את תוכן ההערות באותה רמה כמו הגוף — אותם כללים לחלוטין.
+  - ספר ישן: אל תגע בהערות כלל.
+  - פסוק או ציטוט בהערה — כלשונו ללא שינוי.
+  - אל תוסיף הערות חדשות ואל תמחק קיימות.
+  - שמור על אותו פורמט: [N] טקסט ההערה — שורה נפרדת אחרי קו "---".
+  - אם יש כמה קבוצות הערות (כמה "---") — מזג לקבוצה אחת בסוף.
 • לפסוק או מאמר חז"ל המוזכרים ללא מ"מ — הוסף מ"מ מדויק בסוגריים.
   כלל ברזל לציון מ"מ: בדוק היטב לפני הוספה. אם אינך בטוח במאה אחוז — אל תוסיף כלל. עדיף להשמיט מאשר לטעות.
   מקורות מוסמכים לחיפוש:
