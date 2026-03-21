@@ -1622,10 +1622,10 @@ function buildPrompt(scan = false) {
 • מראי מקומות — שמור אותם כפי שהם. אל תמחק מ"מ קיים.
 • הערות שוליים:
   - מספרי ההפניות בגוף הטקסט ([1],[2] וכד') — שמור בדיוק במקומם, אל תוסיף ואל תמחק.
-  - תוכן ההערות — ערוך לפי רמת העריכה:
+  - תוכן ההערות — ערוך באותה רמה בדיוק כמו גוף הטקסט, לפי רמת העריכה שנבחרה.
     ספר ישן: אל תגע בהערות כלל.
-    שיוף קל: עריכת לשון קלה בלבד, אל תשנה תוכן.
-    שכתוב חלקי/מלא: ערוך כמו גוף הטקסט.
+    שאר הרמות: ערוך כמו הגוף — בדיוק אותם כללים, אותה רמת זהירות.
+    פסוק או ציטוט בתוך הערה — שמור כלשונו ללא שינוי, כמו בגוף.
   - אל תוסיף הערות שוליים חדשות.
   - לאחר הטקסט הראשי כתוב "---" ואז את ההערות: [1] טקסט ההערה.
 • לפסוק או מאמר חז"ל המוזכרים ללא מ"מ — הוסף מ"מ מדויק בסוגריים.
@@ -1647,6 +1647,7 @@ function buildPrompt(scan = false) {
 • ר"ת — שני כללים פשוטים:
   כלל א — שמות של אנשים (רבנים, מחברים, פוסקים) — לעולם אין לפתוח, גם אם אינם מפורסמים. רש"י, רשב"א, ריטב"א, רא"ש וכד' — נשארים כר"ת.
   כלל ב — כל שאר הר"ת (מונחים, ביטויים, שמות ספרים, חלקי שו"ע) — פתח אותם, אלא אם הם שגורים כל כך שכולם מכירים אותם: או"ח · יו"ד · אה"ע · חו"מ · ב"י · שו"ע · עיי"ש · כנ"ל · הנ"ל · ז"ל · ע"כ · אע"פ · וכו' · וכיו"ב · דהיינו · ת"ח · א"י.
+  כלל ג — תוארי כבוד לאחר שמות — לעולם אין לפתוח: זצ"ל · זיע"א · זכ"ל · זצוק"ל · שליט"א · נ"ע · ז"ל · ע"ה · ה"ה · הי"ד · נר"ו · יצ"ו · בן · בת · ב"ר — נשארים כר"ת.
 • אין לשנות שם מחבר, שם ספר, שנת הוצאה, עיר הדפוס.
 
 ═══════════════════════════════════════
@@ -2298,16 +2299,21 @@ async function exportWord(overrideName) {
         if (m2) fnMap[m2[1]] = m2[2];
       }
     }
-    const { FootnoteReferenceRun } = docx;
+    // Try real docx footnotes if available
     const footnotesDef = {};
-    Object.entries(fnMap).forEach(([num, text]) => {
-      footnotesDef[parseInt(num)] = {
-        children: [new Paragraph({
-          children: [new TextRun({ text, font, size: (fs-2)*2, rtl: isRtlDoc })],
-          bidirectional: isRtlDoc
-        })]
-      };
-    });
+    try {
+      const { FootnoteReferenceRun: FNR } = docx;
+      if (FNR) {
+        Object.entries(fnMap).forEach(([num, text]) => {
+          footnotesDef[parseInt(num)] = {
+            children: [new Paragraph({
+              children: [new TextRun({ text, font, size: (fs-2)*2, rtl: isRtlDoc })],
+              bidirectional: isRtlDoc
+            })]
+          };
+        });
+      }
+    } catch(e) { /* footnotes API not available */ }
 
     for (const line of body.split('\n')) {
       const t = line.trim();
@@ -2327,9 +2333,30 @@ async function exportWord(overrideName) {
       const isHeb = /[א-ת]/.test(t);
       const paraRtl = rtl || isHeb;
       // Parse bold/italic markers into TextRun array
-      const paraChildren = parseLineToRuns(t, font, fs, paraRtl);
+      // Replace [N] footnote markers with actual footnote references or superscript
+      let finalChildren;
+      if (Object.keys(footnotesDef).length > 0 && /\[\d+\]/.test(t)) {
+        finalChildren = [];
+        const parts = t.split(/(\[\d+\])/);
+        for (const part of parts) {
+          const numMatch = part.match(/^\[(\d+)\]$/);
+          if (numMatch && footnotesDef[parseInt(numMatch[1])]) {
+            try {
+              const { FootnoteReferenceRun: FNR } = docx;
+              if (FNR) finalChildren.push(new FNR({ id: parseInt(numMatch[1]) }));
+              else finalChildren.push(new TextRun({ text: numMatch[1], font, size: (fs-2)*2, superScript: true, rtl: paraRtl }));
+            } catch(e) {
+              finalChildren.push(new TextRun({ text: numMatch[1], font, size: (fs-2)*2, superScript: true, rtl: paraRtl }));
+            }
+          } else if (part) {
+            finalChildren.push(...parseLineToRuns(part, font, fs, paraRtl));
+          }
+        }
+      } else {
+        finalChildren = parseLineToRuns(t, font, fs, paraRtl);
+      }
       paras.push(new Paragraph({
-        children: paraChildren,
+        children: finalChildren,
         alignment: paraRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
         bidirectional: paraRtl,
         rightToLeft: paraRtl,
@@ -2383,17 +2410,23 @@ async function exportWord(overrideName) {
     }
     const isRtlDoc = S.mode !== 'eng';
     const hasFootnotes = Object.keys(footnotesDef).length > 0;
-    const doc2 = new Document({
+    // Build document with explicit RTL settings
+    const docConfig = {
       ...docSettings,
       footnotes: hasFootnotes ? footnotesDef : undefined,
       sections: [{
         properties: {
           page: { size: { width: pw, height: ph }, margin: { top: m, right: m, bottom: m, left: m } },
-          bidi: isRtlDoc
+          bidi: isRtlDoc,
         },
         children: paras
       }]
-    });
+    };
+    // Add document-level RTL setting
+    if (isRtlDoc) {
+      docConfig.settings = { mirrorMargins: false };
+    }
+    const doc2 = new Document(docConfig);
     const blob = await Packer.toBlob(doc2);
     saveAs(blob, overrideName || fname);
     lg('ok', 'ייצוא הושלם: ' + fname + (trackChanges ? ' (עם עקוב אחרי שינויים)' : ''));
