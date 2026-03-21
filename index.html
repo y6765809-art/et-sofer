@@ -1193,74 +1193,40 @@ function clearFile() {
 
 // ── FOOTNOTE PROCESSOR ──
 function processFootnotes(text) {
-  // Strategy:
-  // 1. Find all footnote definitions: lines matching [N] text
-  // 2. Remove ALL footnote definition blocks (after ---)
-  // 3. Keep only body text with inline [N] markers
-  // 4. Append single clean footnotes section at end
-  
-  // Split on --- separators
-  const parts = text.split(/\n[ \t]*---+[ \t]*\n/);
-  
-  const bodyParts = [];
-  const allFnLines = [];
-  
-  for (const part of parts) {
-    const trimmed = part.trim();
-    if (!trimmed) continue;
-    
-    // Split this part into lines
-    const lines = trimmed.split('\n');
-    const bodyLines = [];
-    const fnLines = [];
-    let inFnBlock = false;
-    
-    for (const line of lines) {
-      const t = line.trim();
-      // A footnote definition line: starts with [N]
-      if (/^\[\d+\]/.test(t)) {
-        inFnBlock = true;
-        fnLines.push(t);
-      } else if (inFnBlock && t && !/^\[\d+\]/.test(t)) {
-        // Continuation of previous footnote (multi-line)
-        if (fnLines.length > 0) {
-          fnLines[fnLines.length-1] += ' ' + t;
-        }
-      } else if (!inFnBlock) {
-        bodyLines.push(line);
-      }
-      // Skip lines like "שכתב:" that appear between footnote definitions
-    }
-    
-    const bodyText = bodyLines.join('\n').trim();
-    if (bodyText) bodyParts.push(bodyText);
-    allFnLines.push(...fnLines);
-  }
-  
-  // Deduplicate footnotes by normalized text
-  const fnSeen = new Map(); // normalized text -> best version
-  for (const line of allFnLines) {
-    const numMatch = line.match(/^\[(\d+)\]\s*(.*)/);
-    if (!numMatch) continue;
-    const num = numMatch[1];
-    const txt = numMatch[2].trim();
-    // Keep the longer/better version if duplicate
-    if (!fnSeen.has(num) || txt.length > (fnSeen.get(num)||'').length) {
-      fnSeen.set(num, txt);
+  // Step 1: extract ALL [N] footnote definitions from anywhere in text
+  // Step 2: remove ALL footnote sections (after ---)  
+  // Step 3: keep only clean body with inline [N] markers
+  // Step 4: append single deduplicated footnotes at end
+
+  const fnMap = new Map(); // num -> best text
+
+  // Find all [N] definitions anywhere in text (after any ---)
+  const fnDefRe = /^\[(\d+)\][ \t]+(.+)$/gm;
+  let m;
+  while ((m = fnDefRe.exec(text)) !== null) {
+    const num = m[1], txt = m[2].trim();
+    if (!fnMap.has(num) || txt.length > fnMap.get(num).length) {
+      fnMap.set(num, txt);
     }
   }
-  
-  const bodyText = bodyParts.join('\n\n');
-  
-  if (fnSeen.size > 0) {
-    const fnBlock = Array.from(fnSeen.entries())
-      .sort((a,b) => parseInt(a[0])-parseInt(b[0]))
+
+  // Remove everything from first --- onwards (all footnote sections)
+  const firstSep = text.search(/\n[ \t]*---+[ \t]*(\n|$)/);
+  let body = firstSep > -1 ? text.slice(0, firstSep).trim() : text.trim();
+
+  // Clean up remaining stray [N] lines in body (shouldn't be there but just in case)
+  // Keep inline [N] markers that are mid-sentence (not on their own line)
+  body = body.replace(/^\[\d+\].*$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+
+  if (fnMap.size > 0) {
+    const fnBlock = Array.from(fnMap.entries())
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
       .map(([num, txt]) => '[' + num + '] ' + txt)
       .join('\n');
-    return bodyText + '\n\n---הערות שוליים---\n' + fnBlock;
+    return body + '\n\n---הערות שוליים---\n' + fnBlock;
   }
-  
-  return bodyText;
+
+  return body;
 }
 
 // ── CHAPTERS ──
