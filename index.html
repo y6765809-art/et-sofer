@@ -1136,10 +1136,10 @@ async function handleFile(file) {
     .replace(/¹/g,'[1]').replace(/²/g,'[2]').replace(/³/g,'[3]')
     .replace(/⁴/g,'[4]').replace(/⁵/g,'[5]').replace(/⁶/g,'[6]')
     .replace(/⁷/g,'[7]').replace(/⁸/g,'[8]').replace(/⁹/g,'[9]');
-  // Clean Word heading codes like @88...@77, @88...@, @66...@
+  // Clean Word heading codes like @88...@77
   S.raw = S.raw.replace(/@\d+([^@]*)@\d*/g, '$1').replace(/@\d+/g, '');
-  // Clean ### markdown headings that mammoth sometimes adds
-  // Keep them as they are useful for chapter detection
+  // Process footnotes: inline [N] markers + matching --- [N] text sections
+  S.raw = processFootnotes(S.raw);
   S_origForDiff = S.raw;
   S.chapters = detectCh(S.raw);
     renderCh();
@@ -1189,6 +1189,49 @@ function clearFile() {
   document.getElementById('ocnt').textContent = '';
   document.getElementById('rcnt').textContent = '';
   setGst('idle', '⬤ ממתין');
+}
+
+// ── FOOTNOTE PROCESSOR ──
+function processFootnotes(text) {
+  // Split text into sections by --- separator
+  // Each section may have a body and footnotes
+  const sections = text.split(/\n---+\n/);
+  if (sections.length <= 1) return text;
+  
+  const result = [];
+  let fnAccum = ''; // accumulated footnotes across sections
+  
+  for (let i = 0; i < sections.length; i++) {
+    const sec = sections[i].trim();
+    if (!sec) continue;
+    
+    // Check if this section is purely footnotes (starts with [N])
+    const isFnSection = /^\[\d+\]/.test(sec.trim());
+    
+    if (isFnSection) {
+      // This is a footnote section - add to accumulator
+      fnAccum += (fnAccum ? '\n' : '') + sec;
+    } else {
+      // This is body text - add it
+      result.push(sec);
+    }
+  }
+  
+  // Combine: body sections + all footnotes at end with single separator
+  const bodyText = result.join('\n\n');
+  if (fnAccum) {
+    // Deduplicate footnotes (same [N] text appearing multiple times)
+    const fnLines = fnAccum.split('\n').filter(l => l.trim());
+    const fnSeen = new Set();
+    const fnUniq = fnLines.filter(line => {
+      const key = line.replace(/^\[\d+\]\s*/, '').trim();
+      if (fnSeen.has(key)) return false;
+      fnSeen.add(key);
+      return true;
+    });
+    return bodyText + '\n\n---הערות שוליים---\n' + fnUniq.join('\n');
+  }
+  return bodyText;
 }
 
 // ── CHAPTERS ──
