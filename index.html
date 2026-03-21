@@ -1136,6 +1136,10 @@ async function handleFile(file) {
     .replace(/¹/g,'[1]').replace(/²/g,'[2]').replace(/³/g,'[3]')
     .replace(/⁴/g,'[4]').replace(/⁵/g,'[5]').replace(/⁶/g,'[6]')
     .replace(/⁷/g,'[7]').replace(/⁸/g,'[8]').replace(/⁹/g,'[9]');
+  // Clean Word heading codes like @88...@77, @88...@, @66...@
+  S.raw = S.raw.replace(/@\d+([^@]*)@\d*/g, '$1').replace(/@\d+/g, '');
+  // Clean ### markdown headings that mammoth sometimes adds
+  // Keep them as they are useful for chapter detection
   S_origForDiff = S.raw;
   S.chapters = detectCh(S.raw);
     renderCh();
@@ -1211,6 +1215,8 @@ function autoSplitCh(ch) {
 
 function detectCh(text) {
   // Priority 1: @@ user markers
+  // But first clean Word heading codes (@88...@77)
+  text = text.replace(/@\d+([^@]*)@\d*/g, '$1').replace(/@\d+/g, '');
   if (text.includes('@@')) {
     const parts = text.split(/@@+/).filter(p => p.trim());
     const chs = parts.map((part, i) => {
@@ -1975,7 +1981,12 @@ async function processSingle() {
   setGst('wrk', '⚙ מעבד...');
   lg('in', `מסמך שלם בבת אחת · ${S.raw.length.toLocaleString()} תווים`);
   // Use full raw text (all chapters combined)
-  const fullText = S.chapters.map(c => c.title !== 'המסמך כולו' ? c.title + '\n' + c.text : c.text).join('\n\n');
+  const fullText = S.chapters
+    .map(c => c.title !== 'המסמך כולו' ? c.title + '\n' + c.text : c.text)
+    .join('\n\n')
+    .replace(/@\d+([^@]*)@\d*/g, '$1')
+    .replace(/@\d+/g, '')
+    .trim();
   const model = 'claude-sonnet-4-20250514'; // Always Sonnet
   const sys = buildPrompt();
   try {
@@ -2075,7 +2086,10 @@ async function startProcessing() {
     while (tries < 3 && out === null) {
       try {
         // For ancient mode: separate footnotes, don't send to AI
-        const chText = ch.text || '';
+        const chText = (ch.text || '')
+          .replace(/@\d+([^@]*)@\d*/g, '$1')
+          .replace(/@\d+/g, '')
+          .trim();
         const fnSepMark = '---הערות שוליים---';
         let bodyToSend = chText;
         let fnToReattach = '';
@@ -2200,17 +2214,19 @@ function pauseAct(a) {
 
 // ── EXPORT ──
 function getResult() {
+  // Priority: S.allResult (single doc) > S.results (multi chapter) > res-text
   let text = '';
-  if (Object.keys(S.results).length > 0) {
+  if (S.allResult && S.allResult.trim()) {
+    text = S.allResult;
+  } else if (Object.keys(S.results).length > 0) {
     text = S.chapters.map((_,i) => S.results[i]||'').filter(Boolean).join('\n\n');
   } else {
     const el = document.getElementById('res-text');
-    text = el.innerText || S.allResult || '';
+    text = el.innerText || '';
   }
-  // Strip any leftover diff buttons/markers
+  // Strip leftover diff markers
   return text
-    .replace(/[✓✗]/g, '')
-    .replace(/\u2713|\u2717/g, '')
+    .replace(/[✓✗✓✗]/g, '')
     .replace(/^\s*[VX]\s*$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -2803,22 +2819,7 @@ function openTrackViewer() {
 }
 
 function closeTrackViewer() {
-  const trackBody = document.getElementById('tv-track-body');
-  const resEl = document.getElementById('res-text');
-  if (trackBody && trackBody.innerText.trim()) {
-    // Strip diff buttons and clean up text
-    let plainText = trackBody.innerText
-      .replace(/[✓✗]/g, '')
-      .replace(/^\s*[✓✗VX]\s*$/gm, '')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-    if (plainText) {
-      resEl.innerHTML = parseMarkdown(plainText);
-      S.allResult = plainText;
-      if (S.curCh !== undefined) S.results[S.curCh] = plainText;
-      document.getElementById('rcnt').textContent = wc(plainText) + ' מילים';
-    }
-  }
+  // Just close — don't overwrite results
   document.getElementById('track-viewer').classList.remove('open');
 }
 
@@ -2946,26 +2947,21 @@ function navCh(dir) {
 }
 
 function acceptAllChanges() {
-  // Get track body text, strip buttons, save as result
-  const trackBody = document.getElementById('tv-track-body');
-  let text = trackBody ? trackBody.innerText : getResult();
-  text = text.replace(/[✓✗]/g, '').replace(/^\s*[✓\u2717VX]\s*$/gm, '').replace(/\n{3,}/g,'\n\n').trim();
-  const res = document.getElementById('res-text');
-  res.innerHTML = parseMarkdown(text);
-  S.allResult = text;
-  if (S.curCh !== undefined) S.results[S.curCh] = text;
+  // Edited result is already in S.allResult/S.results — just close
   document.getElementById('track-viewer').classList.remove('open');
   lg('ok', '✓ כל השינויים התקבלו');
 }
 
 function rejectAllChanges() {
-  // Restore original
+  // Restore original text
   const orig = S_origForDiff || S.chapters?.map(ch=>ch.text||'').join('\n\n') || '';
   if (!orig) { alert('אין מקור לשחזור'); return; }
   const res = document.getElementById('res-text');
   res.innerHTML = parseMarkdown(orig);
   S.allResult = orig;
-  closeTrackViewer();
+  // Clear all chapter results
+  S.chapters.forEach((_, i) => { S.results[i] = ''; });
+  document.getElementById('track-viewer').classList.remove('open');
   lg('ok', '✗ כל השינויים נדחו — שוחזר המקור');
 }
 
